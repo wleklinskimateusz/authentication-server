@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { UserController, InvalidRequestBodyError } from "./user.controller";
+import { UserController } from "./user.controller";
 import {
   UserAlreadyExistsError,
   UserInvalidPasswordError,
   UserNotFoundError,
   UserService,
 } from "../application/user.service";
-import { UserAuth } from "../domain/user";
-import { BaseError } from "../common/error";
-import { z } from "zod";
+import type { TokenResponse } from "../application/jwt.service";
 
 // Simple mock for testing
 const createMockUserService = () => ({
-  login: mock(() => Promise.resolve({} as UserAuth)),
+  login: mock(() =>
+    Promise.resolve({ accessToken: "mock-token", expiresIn: 86400 })
+  ),
   register: mock(() => Promise.resolve()),
 });
 
@@ -28,16 +28,12 @@ describe("UserController", () => {
   });
 
   describe("login", () => {
-    it("should return 200 with user DTO on successful login", async () => {
-      const mockUser = new UserAuth({
-        id: "user-123",
-        email: "test@example.com",
-        username: "testuser",
-        passwordHash: "hashedpassword",
-        permissionGroups: ["user"],
-      });
-
-      mockUserService.login.mockResolvedValue(mockUser);
+    it("should return 200 with token on successful login", async () => {
+      const token = {
+        accessToken: "mock-token",
+        expiresIn: 86400,
+      };
+      mockUserService.login.mockResolvedValue(token);
 
       const request = new Request("http://localhost/login", {
         method: "POST",
@@ -46,10 +42,11 @@ describe("UserController", () => {
       });
 
       const response = await userController.login(request);
-      const body = (await response.json()) as any;
+      const body = (await response.json()) as TokenResponse;
 
       expect(response.status).toBe(200);
-      expect(body).toEqual(mockUser.toDTO());
+
+      expect(body).toEqual(token);
       expect(mockUserService.login).toHaveBeenCalledWith(
         "testuser",
         "password123"
@@ -205,7 +202,10 @@ describe("UserController", () => {
 
   describe("HTTP response formatting", () => {
     it("should set correct content-type header", async () => {
-      mockUserService.login.mockResolvedValue({} as UserAuth);
+      mockUserService.login.mockResolvedValue({
+        accessToken: "mock-token",
+        expiresIn: 86400,
+      });
 
       const request = new Request("http://localhost/login", {
         method: "POST",

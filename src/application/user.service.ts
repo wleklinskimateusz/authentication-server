@@ -1,5 +1,7 @@
 import { BaseError } from "../common/error";
 import { UserAuth } from "../domain/user";
+import { JWTService } from "./jwt.service";
+import type { TokenResponse } from "./jwt.service";
 
 export interface UserRepository {
   create(user: UserAuth): Promise<void>;
@@ -28,9 +30,13 @@ export class UserInvalidPasswordError extends BaseError {
 }
 
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  private readonly jwtService: JWTService;
 
-  async login(username: string, password: string) {
+  constructor(private readonly userRepository: UserRepository) {
+    this.jwtService = new JWTService();
+  }
+
+  async login(username: string, password: string): Promise<TokenResponse> {
     const user = await this.userRepository.findByUsername(username);
     if (!user) {
       throw new UserNotFoundError(`User with username ${username} not found`);
@@ -41,7 +47,8 @@ export class UserService {
         `Invalid password for user ${username}`
       );
     }
-    return user;
+
+    return this.jwtService.generateAccessToken(user.toDTO());
   }
 
   async register(username: string, password: string) {
@@ -59,5 +66,9 @@ export class UserService {
         permissionGroups: [],
       })
     );
+  }
+
+  async verifyAccessToken(token: string) {
+    return await this.jwtService.verifyAccessToken(token);
   }
 }

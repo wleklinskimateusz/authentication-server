@@ -56,8 +56,8 @@ export class UserController {
           password: z.string(),
         })
       );
-      const user = await this.userService.login(username, password);
-      return Response.json(user.toDTO(), { status: 200 });
+      const token = await this.userService.login(username, password);
+      return Response.json(token, { status: 200 });
     } catch (error) {
       return this.handleError(error);
     }
