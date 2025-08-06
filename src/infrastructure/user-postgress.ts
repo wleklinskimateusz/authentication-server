@@ -1,9 +1,10 @@
-import { type UserRepository, User } from "../domain/user";
+import { UserAuth } from "../domain/user";
 import { sql } from "bun";
+import type { UserRepository } from "../application/user.service";
 
 export class UserPostgress implements UserRepository {
-  async create(user: User): Promise<void> {
-    const query = sql`INSERT INTO users (id, username, hashed_password, created_at, updated_at) VALUES (${user.id}, ${user.username}, ${user.hashedPassword}, ${user.createdAt}, ${user.updatedAt})`;
+  async create(user: UserAuth): Promise<void> {
+    const query = sql`INSERT INTO users (id, email, username, hashed_password, created_at, updated_at) VALUES (${user.id}, ${user.email}, ${user.username}, ${user.hashedPassword}, ${user.createdAt}, ${user.updatedAt})`;
     await query.execute();
   }
 
@@ -19,7 +20,7 @@ export class UserPostgress implements UserRepository {
           ]
         ]
       | undefined
-  ): User | null {
+  ) {
     if (!sqlResponse) return null;
 
     const createdAt = sqlResponse[0][3];
@@ -34,32 +35,34 @@ export class UserPostgress implements UserRepository {
 
     const id = sqlResponse[0][0];
 
-    return new User({
+    return new UserAuth({
       id,
+      email: sqlResponse[0][1],
       username: sqlResponse[0][1],
       passwordHash: sqlResponse[0][2],
       createdAt: createdAt,
       updatedAt: updatedAt,
+      permissionGroups: [],
     });
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: string) {
     return this.toUser(
       await sql`SELECT * FROM users WHERE id = ${id}`.values()
     );
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByUsername(username: string) {
     return this.toUser(
-      await sql`SELECT * FROM users WHERE email = ${email}`.values()
+      await sql`SELECT * FROM users WHERE username = ${username}`.values()
     );
   }
 
-  async update(user: User): Promise<void> {
+  async update(user: UserAuth) {
     await sql`UPDATE users SET hashed_password = ${user.hashedPassword}, updated_at = ${user.updatedAt} WHERE id = ${user.id}`.execute();
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string) {
     await sql`DELETE FROM users WHERE id = ${id}`.execute();
   }
 }

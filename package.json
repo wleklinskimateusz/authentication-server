@@ -6,9 +6,14 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
-    "test": "bun test --coverage"
+    "test": "bun test --coverage",
+    "test:service": "bun test src/application/user.service.test.ts",
+    "test:controller": "bun test src/interfaces/user.controller.test.ts",
+    "test:domain": "bun test src/domain/user.test.ts",
+    "test:all": "bun run test-runner.ts"
   },
   "dependencies": {
+    "zod": "^4.0.15"
   },
   "devDependencies": {
     "@types/bun": "latest"

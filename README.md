@@ -31,25 +31,9 @@ bun install
 
 2. Set up environment variables by creating a `.env` file:
 ```bash
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=auth_db
-DB_USER=postgres
-DB_PASSWORD=your_password
 
-# JWT Secrets (change these in production!)
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_REFRESH_SECRET=your-super-secret-refresh-jwt-key-change-this-in-production
-
-# Server Configuration
-PORT=3000
 ```
 
-3. Create PostgreSQL database:
-```sql
-CREATE DATABASE auth_db;
-```
 
 ## Running the Server
 
@@ -63,28 +47,26 @@ bun run dev
 bun run start
 ```
 
-The server will start on `http://localhost:3000` (or the port specified in your `.env` file).
-
 ## API Endpoints
 
 ### Health Check
 - `GET /health` - Check server and database status
 
 ### Authentication
-- `POST /auth/register` - Register a new user
-- `POST /auth/login` - Login user
-- `POST /auth/refresh` - Refresh access token
-- `POST /auth/logout` - Logout user
+- `POST /register` - Register a new user
+- `POST /login` - Login user
+- `POST /refresh` - Refresh access token
+- `POST /logout` - Logout user
 
 ### Protected Routes
-- `GET /auth/profile` - Get user profile (requires authentication)
-- `PUT /auth/change-password` - Change user password (requires authentication)
+- `GET /profile` - Get user profile (requires authentication)
+- `PUT /change-password` - Change user password (requires authentication)
 
 ## API Usage Examples
 
 ### Register a new user:
 ```bash
-curl -X POST http://localhost:3000/auth/register \
+curl -X POST http://localhost:3000/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -94,7 +76,7 @@ curl -X POST http://localhost:3000/auth/register \
 
 ### Login:
 ```bash
-curl -X POST http://localhost:3000/auth/login \
+curl -X POST http://localhost:3000/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -104,13 +86,13 @@ curl -X POST http://localhost:3000/auth/login \
 
 ### Access protected route:
 ```bash
-curl -X GET http://localhost:3000/auth/profile \
+curl -X GET http://localhost:3000/profile \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 ### Refresh token:
 ```bash
-curl -X POST http://localhost:3000/auth/refresh \
+curl -X POST http://localhost:3000/refresh \
   -H "Content-Type: application/json" \
   -d '{
     "refreshToken": "YOUR_REFRESH_TOKEN"
@@ -119,7 +101,7 @@ curl -X POST http://localhost:3000/auth/refresh \
 
 ### Change password:
 ```bash
-curl -X PUT http://localhost:3000/auth/change-password \
+curl -X PUT http://localhost:3000/change-password \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -164,30 +146,8 @@ CREATE TABLE refresh_tokens (
 - **Input Validation**: Server-side validation for all inputs
 - **Error Handling**: Comprehensive error handling and logging
 
-## Project Structure
-
-```
-auth/
-├── src/
-│   └── database/
-│       └── PostgresHandler.ts    # PostgreSQL database handler
-├── index.ts                      # Main server file
-├── package.json                  # Dependencies and scripts
-├── tsconfig.json                 # TypeScript configuration
-└── README.md                     # This file
-```
 
 ## Development
-
-The project uses:
-- **Bun** as the runtime
-- **TypeScript** for type safety
-- **Express.js** for the web server
-- **PostgreSQL** for data persistence
-- **bcryptjs** for password hashing
-- **jsonwebtoken** for JWT tokens
-- **cors** for cross-origin requests
-- **dotenv** for environment variables
 
 ## License
 
