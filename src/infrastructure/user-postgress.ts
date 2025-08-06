@@ -1,10 +1,13 @@
 import { UserAuth } from "../domain/user";
 import { sql } from "bun";
 import type { UserRepository } from "../application/user.service";
+import { ShouldNotHappenError } from "../common/error";
 
 export class UserPostgress implements UserRepository {
   async create(user: UserAuth): Promise<void> {
-    const query = sql`INSERT INTO users (id, email, username, hashed_password, created_at, updated_at) VALUES (${user.id}, ${user.email}, ${user.username}, ${user.hashedPassword}, ${user.createdAt}, ${user.updatedAt})`;
+    const query = sql`
+    INSERT INTO users (id, email, username, hashed_password, created_at, updated_at) 
+    VALUES (${user.id}, ${user.email}, ${user.username}, ${user.hashedPassword}, ${user.createdAt}, ${user.updatedAt})`;
     await query.execute();
   }
 
@@ -25,12 +28,12 @@ export class UserPostgress implements UserRepository {
 
     const createdAt = sqlResponse[0][3];
     if (!(createdAt instanceof Date)) {
-      throw new Error("createdAt is not a Date");
+      throw new ShouldNotHappenError("createdAt is not a Date");
     }
 
     const updatedAt = sqlResponse[0][4];
     if (!(updatedAt instanceof Date)) {
-      throw new Error("updatedAt is not a Date");
+      throw new ShouldNotHappenError("updatedAt is not a Date");
     }
 
     const id = sqlResponse[0][0];
