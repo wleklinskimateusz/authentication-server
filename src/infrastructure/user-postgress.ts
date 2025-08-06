@@ -1,5 +1,4 @@
-import type { UserRepository } from "../domain/user-repository";
-import { User } from "../domain/user";
+import { type UserRepository, User } from "../domain/user";
 import { sql } from "bun";
 
 export class UserPostgress implements UserRepository {
@@ -25,18 +24,18 @@ export class UserPostgress implements UserRepository {
 
     const createdAt = sqlResponse[0][3];
     if (!(createdAt instanceof Date)) {
-      console.log(typeof createdAt);
       throw new Error("createdAt is not a Date");
     }
 
     const updatedAt = sqlResponse[0][4];
     if (!(updatedAt instanceof Date)) {
-      console.log(typeof updatedAt);
       throw new Error("updatedAt is not a Date");
     }
 
+    const id = sqlResponse[0][0];
+
     return new User({
-      id: sqlResponse[0][0],
+      id,
       username: sqlResponse[0][1],
       passwordHash: sqlResponse[0][2],
       createdAt: createdAt,

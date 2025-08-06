@@ -1,3 +1,11 @@
+export interface UserRepository {
+  create(user: User): Promise<void>;
+  findById(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  update(user: User): Promise<void>;
+  delete(id: string): Promise<void>;
+}
+
 export class User {
   readonly id: string;
   readonly username: string;
@@ -9,7 +17,6 @@ export class User {
     id: string;
     username: string;
     passwordHash: string;
-    roles?: string[];
     createdAt?: Date;
     updatedAt?: Date;
   }) {
@@ -24,7 +31,7 @@ export class User {
     return Bun.password.verify(plainPassword, this.hashedPassword);
   }
 
-  toJSON() {
+  toPublic() {
     return {
       id: this.id,
       username: this.username,
