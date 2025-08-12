@@ -136,11 +136,11 @@ describe("UserService", () => {
       await userService.register(username, password);
 
       // Login with correct credentials
-      const loggedInUser = await userService.login(username, password);
+      const token = await userService.login(username, password);
 
-      expect(loggedInUser).not.toBeNull();
-      expect(loggedInUser.username).toBe(username);
-      expect(loggedInUser.email).toBe(`${username}@example.com`);
+      expect(token).not.toBeNull();
+      expect(token.accessToken).not.toBeNull();
+      expect(token.expiresIn).not.toBeNull();
     });
 
     it("should throw UserNotFoundError when username does not exist", async () => {
@@ -170,22 +170,6 @@ describe("UserService", () => {
       expect(userService.login(username, wrongPassword)).rejects.toThrow(
         `Invalid password for user ${username}`
       );
-    });
-
-    it("should return user DTO with correct structure", async () => {
-      const username = "testuser";
-      const password = "password123";
-
-      await userService.register(username, password);
-      const loggedInUser = await userService.login(username, password);
-
-      const dto = loggedInUser.toDTO();
-      expect(dto).toEqual({
-        id: loggedInUser.id,
-        username: username,
-        email: `${username}@example.com`,
-        permissionGroups: [],
-      });
     });
 
     it("should handle case-sensitive username matching", async () => {
@@ -269,6 +253,52 @@ describe("UserService", () => {
       expect(user).not.toBeNull();
       const isValid = await user!.validatePassword(password);
       expect(isValid).toBe(true);
+    });
+  });
+
+  describe("JWT token verification", () => {
+    it("should call verifyAccessToken with correct token", async () => {
+      const testToken = "test.jwt.token";
+      const expectedPayload = {
+        userId: "user-123",
+        username: "testuser",
+        email: "test@example.com",
+        permissionGroups: ["user"],
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 86400,
+      };
+
+      // Mock the JWT service's verifyAccessToken method
+      const mockVerifyAccessToken = mock(() =>
+        Promise.resolve(expectedPayload)
+      );
+      userService["jwtService"].verifyAccessToken = mockVerifyAccessToken;
+
+      // Call the verifyAccessToken method
+      const result = await userService.verifyAccessToken(testToken);
+
+      // Verify the method was called with the correct token
+      expect(mockVerifyAccessToken).toHaveBeenCalledWith(testToken);
+      expect(mockVerifyAccessToken).toHaveBeenCalledTimes(1);
+
+      // Verify the result is correct
+      expect(result).toEqual(expectedPayload);
+    });
+
+    it("should propagate JWT verification errors", async () => {
+      const testToken = "invalid.jwt.token";
+      const jwtError = new Error("Invalid JWT token");
+
+      // Mock the JWT service to throw an error
+      const mockVerifyAccessToken = mock(() => Promise.reject(jwtError));
+      userService["jwtService"].verifyAccessToken = mockVerifyAccessToken;
+
+      // Verify the error is propagated
+      await expect(userService.verifyAccessToken(testToken)).rejects.toThrow(
+        "Invalid JWT token"
+      );
+      expect(mockVerifyAccessToken).toHaveBeenCalledWith(testToken);
+      expect(mockVerifyAccessToken).toHaveBeenCalledTimes(1);
     });
   });
 });

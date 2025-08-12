@@ -3,3 +3,4 @@
 # always enable coverage
 coverage = true
 coverageThreshold = 0.99
+coverageReporter = ["lcov", "text"]
