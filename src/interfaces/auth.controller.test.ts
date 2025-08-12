@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { UserController } from "./user.controller";
+import { AuthController } from "./auth.controller";
 import {
   UserAlreadyExistsError,
   UserInvalidPasswordError,
@@ -17,12 +17,12 @@ const createMockUserService = () => ({
 });
 
 describe("UserController", () => {
-  let userController: UserController;
+  let userController: AuthController;
   let mockUserService: ReturnType<typeof createMockUserService>;
 
   beforeEach(() => {
     mockUserService = createMockUserService();
-    userController = new UserController(
+    userController = new AuthController(
       mockUserService as unknown as UserService
     );
   });
@@ -246,6 +246,14 @@ describe("UserController", () => {
 
       expect(response.status).toBe(400);
       expect(body.error).toContain("Invalid request body");
+    });
+  });
+
+  describe("registerRoutes", () => {
+    it("should return the correct routes", () => {
+      const routes = userController.registerRoutes();
+      expect(routes.path).toBe("/auth");
+      expect(routes.routes.length).toBe(2);
     });
   });
 });

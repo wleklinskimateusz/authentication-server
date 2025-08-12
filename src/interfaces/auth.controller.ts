@@ -1,6 +1,7 @@
 import z from "zod";
 import { UserService } from "../application/user.service";
 import { BaseError } from "../common/error";
+import type { Controller } from "../infrastructure/http/server";
 
 export class InvalidRequestBodyError extends BaseError {
   constructor(message: string) {
@@ -8,7 +9,7 @@ export class InvalidRequestBodyError extends BaseError {
   }
 }
 
-export class UserController {
+export class AuthController implements Controller {
   private readonly userService: UserService;
   constructor(userService: UserService) {
     this.userService = userService;
@@ -20,11 +21,19 @@ export class UserController {
       const { success, data, error } = schema.safeParse(body);
       if (!success) {
         throw new InvalidRequestBodyError(
-          `Invalid request body: ${JSON.stringify(error)}`
+          `Invalid request body: ${JSON.stringify(error.message)}`
         );
       }
       return data;
     } catch (error) {
+      if (error instanceof InvalidRequestBodyError) {
+        throw error;
+      }
+      if (error instanceof Error) {
+        throw new InvalidRequestBodyError(
+          `Invalid request body: ${JSON.stringify(error.message)}`
+        );
+      }
       throw new InvalidRequestBodyError(
         `Invalid request body: ${JSON.stringify(error)}`
       );
@@ -77,5 +86,22 @@ export class UserController {
     } catch (error) {
       return this.handleError(error);
     }
+  }
+
+  registerRoutes() {
+    const routes = [
+      {
+        path: "/login",
+        method: "POST",
+        handler: this.login.bind(this),
+      },
+      {
+        path: "/register",
+        method: "POST",
+        handler: this.register.bind(this),
+      },
+    ];
+
+    return { path: "/auth", routes };
   }
 }
