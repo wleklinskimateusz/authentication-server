@@ -16,7 +16,6 @@ describe("JWTService", () => {
       id: "user-123",
       username: "testuser",
       email: "test@example.com",
-      permissionGroups: ["user"],
     };
   });
 
@@ -66,7 +65,6 @@ describe("JWTService", () => {
       expect(payload.userId).toBe(mockUser.id);
       expect(payload.username).toBe(mockUser.username);
       expect(payload.email).toBe(mockUser.email);
-      expect(payload.permissionGroups).toEqual(mockUser.permissionGroups);
     });
 
     it("should throw JWTInvalidTokenError for invalid token format", async () => {
@@ -149,7 +147,6 @@ describe("JWTService", () => {
       expect(payload).toHaveProperty("userId");
       expect(payload).toHaveProperty("username");
       expect(payload).toHaveProperty("email");
-      expect(payload).toHaveProperty("permissionGroups");
       expect(payload).toHaveProperty("iat");
       expect(payload).toHaveProperty("exp");
     });

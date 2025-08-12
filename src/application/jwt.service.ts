@@ -6,7 +6,6 @@ export const TokenPayload = z.object({
   userId: z.string(),
   username: z.string(),
   email: z.string(),
-  permissionGroups: z.array(z.string()),
   iat: z.number(),
   exp: z.number(),
 });
@@ -50,7 +49,6 @@ export class JWTService {
       userId: user.id,
       username: user.username,
       email: user.email,
-      permissionGroups: user.permissionGroups,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + this.accessTokenExpiry,
     };
