@@ -1,14 +1,17 @@
+import { z } from "zod";
 import { BaseError } from "../common/error";
 import type { User } from "../domain/user";
 
-export interface TokenPayload {
-  userId: string;
-  username: string;
-  email: string;
-  permissionGroups: string[];
-  iat?: number;
-  exp?: number;
-}
+export const TokenPayload = z.object({
+  userId: z.string(),
+  username: z.string(),
+  email: z.string(),
+  permissionGroups: z.array(z.string()),
+  iat: z.number(),
+  exp: z.number(),
+});
+
+export type TokenPayload = z.infer<typeof TokenPayload>;
 
 export interface TokenResponse {
   accessToken: string;
@@ -16,8 +19,8 @@ export interface TokenResponse {
 }
 
 export class JWTService {
-  private readonly accessTokenSecret: string;
-  private readonly accessTokenExpiry: number; // in seconds
+  accessTokenSecret: string;
+  accessTokenExpiry: number; // in seconds
 
   constructor() {
     this.accessTokenSecret =
@@ -34,6 +37,14 @@ export class JWTService {
     };
   }
 
+  private encodeBase64(data: object): string {
+    return Buffer.from(JSON.stringify(data)).toString("base64");
+  }
+
+  private decodeBase64<T>(data: string, schema: z.ZodSchema<T>): T {
+    return schema.parse(JSON.parse(Buffer.from(data, "base64").toString()));
+  }
+
   private async createAccessToken(user: User): Promise<string> {
     const payload: TokenPayload = {
       userId: user.id,
@@ -44,10 +55,8 @@ export class JWTService {
       exp: Math.floor(Date.now() / 1000) + this.accessTokenExpiry,
     };
 
-    const header = Buffer.from(
-      JSON.stringify({ alg: "HS256", typ: "JWT" })
-    ).toString("base64");
-    const payloadStr = Buffer.from(JSON.stringify(payload)).toString("base64");
+    const header = this.encodeBase64({ alg: "HS256", typ: "JWT" });
+    const payloadStr = this.encodeBase64(payload);
     const signature = await this.createSignature(
       header + "." + payloadStr,
       this.accessTokenSecret
@@ -70,7 +79,7 @@ export class JWTService {
     );
 
     const signature = await crypto.subtle.sign("HMAC", key, messageData);
-    return Buffer.from(signature).toString("base64");
+    return this.encodeBase64(signature);
   }
 
   async verifyAccessToken(token: string): Promise<TokenPayload> {
@@ -94,9 +103,7 @@ export class JWTService {
         throw new JWTInvalidTokenError("Invalid token signature");
       }
 
-      const decodedPayload = JSON.parse(
-        Buffer.from(payload, "base64").toString()
-      ) as TokenPayload;
+      const decodedPayload = this.decodeBase64(payload, TokenPayload);
 
       if (decodedPayload.exp && Date.now() >= decodedPayload.exp * 1000) {
         throw new JWTTokenExpiredError("Access token has expired");
@@ -126,43 +133,6 @@ export class JWTService {
 
     return parts[1] || null;
   }
-
-  getTokenExpirationTime(): Date {
-    const now = new Date();
-    return new Date(now.getTime() + this.accessTokenExpiry * 1000);
-  }
-
-  async isTokenNearExpiry(token: string): Promise<boolean> {
-    try {
-      const payload = await this.verifyAccessToken(token);
-      if (!payload.exp) {
-        return true;
-      }
-
-      const oneHourFromNow = Date.now() + 60 * 60 * 1000;
-      return payload.exp * 1000 <= oneHourFromNow;
-    } catch {
-      return true;
-    }
-  }
-
-  decodeTokenWithoutVerification(token: string): TokenPayload | null {
-    try {
-      const parts = token.split(".");
-      if (parts.length !== 3) {
-        return null;
-      }
-
-      const payload = parts[1];
-      if (!payload) {
-        return null;
-      }
-
-      return JSON.parse(atob(payload)) as TokenPayload;
-    } catch {
-      return null;
-    }
-  }
 }
 
 export class JWTInvalidTokenError extends BaseError {
@@ -172,12 +142,6 @@ export class JWTInvalidTokenError extends BaseError {
 }
 
 export class JWTTokenExpiredError extends BaseError {
-  constructor(message: string) {
-    super(message, 401);
-  }
-}
-
-export class JWTTokenMissingError extends BaseError {
   constructor(message: string) {
     super(message, 401);
   }

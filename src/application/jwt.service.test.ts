@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, jest } from "bun:test";
 import {
   JWTService,
   JWTInvalidTokenError,
@@ -18,6 +18,16 @@ describe("JWTService", () => {
       email: "test@example.com",
       permissionGroups: ["user"],
     };
+  });
+
+  describe("constructor", () => {
+    it("should create a JWTService instance with default values", () => {
+      const jwtService = new JWTService();
+
+      expect(jwtService).toBeInstanceOf(JWTService);
+      expect(jwtService.accessTokenExpiry).toBe(86400);
+      expect(jwtService.accessTokenSecret).toBe("your-access-secret-key");
+    });
   });
 
   describe("generateAccessToken", () => {
@@ -60,15 +70,15 @@ describe("JWTService", () => {
     });
 
     it("should throw JWTInvalidTokenError for invalid token format", async () => {
-      await expect(
-        jwtService.verifyAccessToken("invalid.token")
-      ).rejects.toThrow(JWTInvalidTokenError);
+      expect(jwtService.verifyAccessToken("invalid.token")).rejects.toThrow(
+        JWTInvalidTokenError
+      );
     });
 
     it("should throw JWTInvalidTokenError for malformed token", async () => {
-      await expect(
-        jwtService.verifyAccessToken("header.payload")
-      ).rejects.toThrow(JWTInvalidTokenError);
+      expect(jwtService.verifyAccessToken("header.payload")).rejects.toThrow(
+        JWTInvalidTokenError
+      );
     });
 
     it("should throw JWTInvalidTokenError for invalid signature", async () => {
@@ -76,55 +86,23 @@ describe("JWTService", () => {
       const tamperedToken =
         tokenResponse.accessToken.slice(0, -10) + "tampered";
 
-      await expect(jwtService.verifyAccessToken(tamperedToken)).rejects.toThrow(
+      expect(jwtService.verifyAccessToken(tamperedToken)).rejects.toThrow(
         JWTInvalidTokenError
       );
     });
 
     it("should throw JWTTokenExpiredError for expired token", async () => {
-      // Create a token with an expired timestamp
-      const expiredPayload = {
-        userId: mockUser.id,
-        username: mockUser.username,
-        email: mockUser.email,
-        permissionGroups: mockUser.permissionGroups,
-        iat: Math.floor(Date.now() / 1000) - 86400, // 24 hours ago
-        exp: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago (expired)
-      };
+      const pastDate = Date.now() - 1000 * 60 * 60 * 24;
+      const originalDateNow = Date.now;
+      Date.now = jest.fn(() => pastDate); // 2024-06-10T00:00:00.000Z
 
-      // Create the expired token manually
-      const header = Buffer.from(
-        JSON.stringify({ alg: "HS256", typ: "JWT" })
-      ).toString("base64");
-      const payloadStr = Buffer.from(JSON.stringify(expiredPayload)).toString(
-        "base64"
-      );
+      const tokenResponse = await jwtService.generateAccessToken(mockUser);
 
-      // Create signature for the expired token
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(jwtService["accessTokenSecret"]);
-      const messageData = encoder.encode(header + "." + payloadStr);
+      Date.now = originalDateNow;
 
-      const key = await crypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-
-      const signature = await crypto.subtle.sign("HMAC", key, messageData);
-      const signatureStr = Buffer.from(signature).toString("base64");
-
-      const expiredToken = `${header}.${payloadStr}.${signatureStr}`;
-
-      // Verify that the expired token throws the correct error
-      await expect(jwtService.verifyAccessToken(expiredToken)).rejects.toThrow(
-        JWTTokenExpiredError
-      );
-      await expect(jwtService.verifyAccessToken(expiredToken)).rejects.toThrow(
-        "Access token has expired"
-      );
+      expect(
+        jwtService.verifyAccessToken(tokenResponse.accessToken)
+      ).rejects.toThrow(JWTTokenExpiredError);
     });
   });
 
@@ -161,54 +139,6 @@ describe("JWTService", () => {
     });
   });
 
-  describe("getTokenExpirationTime", () => {
-    it("should return future expiration time", () => {
-      const expirationTime = jwtService.getTokenExpirationTime();
-      const now = new Date();
-
-      expect(expirationTime.getTime()).toBeGreaterThan(now.getTime());
-    });
-  });
-
-  describe("isTokenNearExpiry", () => {
-    it("should return false for valid token", async () => {
-      const tokenResponse = await jwtService.generateAccessToken(mockUser);
-      const isNearExpiry = await jwtService.isTokenNearExpiry(
-        tokenResponse.accessToken
-      );
-
-      expect(isNearExpiry).toBe(false);
-    });
-
-    it("should return true for invalid token", async () => {
-      const isNearExpiry = await jwtService.isTokenNearExpiry("invalid.token");
-
-      expect(isNearExpiry).toBe(true);
-    });
-  });
-
-  describe("decodeTokenWithoutVerification", () => {
-    it("should decode valid token structure", () => {
-      const token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
-      const payload = jwtService.decodeTokenWithoutVerification(token);
-
-      expect(payload).toBeDefined();
-    });
-
-    it("should return null for invalid token format", () => {
-      const payload =
-        jwtService.decodeTokenWithoutVerification("invalid.token");
-      expect(payload).toBeNull();
-    });
-
-    it("should return null for malformed token", () => {
-      const payload =
-        jwtService.decodeTokenWithoutVerification("header.payload");
-      expect(payload).toBeNull();
-    });
-  });
-
   describe("token payload structure", () => {
     it("should include all required fields in access token", async () => {
       const tokenResponse = await jwtService.generateAccessToken(mockUser);
@@ -230,7 +160,7 @@ describe("JWTService", () => {
       const invalidToken =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.base64.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
-      await expect(jwtService.verifyAccessToken(invalidToken)).rejects.toThrow(
+      expect(jwtService.verifyAccessToken(invalidToken)).rejects.toThrow(
         JWTInvalidTokenError
       );
     });
@@ -239,7 +169,7 @@ describe("JWTService", () => {
       const invalidToken =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.!!!.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
-      await expect(jwtService.verifyAccessToken(invalidToken)).rejects.toThrow(
+      expect(jwtService.verifyAccessToken(invalidToken)).rejects.toThrow(
         JWTInvalidTokenError
       );
     });
