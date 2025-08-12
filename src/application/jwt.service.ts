@@ -37,12 +37,12 @@ export class JWTService {
     };
   }
 
-  private encodeBase64(data: object): string {
-    return Buffer.from(JSON.stringify(data)).toString("base64");
+  private encodeBase64Url(data: object): string {
+    return Buffer.from(JSON.stringify(data)).toString("base64url");
   }
 
-  private decodeBase64<T>(data: string, schema: z.ZodSchema<T>): T {
-    return schema.parse(JSON.parse(Buffer.from(data, "base64").toString()));
+  private decodeBase64Url<T>(data: string, schema: z.ZodSchema<T>): T {
+    return schema.parse(JSON.parse(Buffer.from(data, "base64url").toString()));
   }
 
   private async createAccessToken(user: User): Promise<string> {
@@ -55,8 +55,8 @@ export class JWTService {
       exp: Math.floor(Date.now() / 1000) + this.accessTokenExpiry,
     };
 
-    const header = this.encodeBase64({ alg: "HS256", typ: "JWT" });
-    const payloadStr = this.encodeBase64(payload);
+    const header = this.encodeBase64Url({ alg: "HS256", typ: "JWT" });
+    const payloadStr = this.encodeBase64Url(payload);
     const signature = await this.createSignature(
       header + "." + payloadStr,
       this.accessTokenSecret
@@ -66,20 +66,21 @@ export class JWTService {
   }
 
   private async createSignature(data: string, secret: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(secret);
-    const messageData = encoder.encode(data);
-
     const key = await crypto.subtle.importKey(
       "raw",
-      keyData,
+      new TextEncoder().encode(secret),
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["sign"]
     );
 
-    const signature = await crypto.subtle.sign("HMAC", key, messageData);
-    return this.encodeBase64(signature);
+    const signatureBuffer = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(data)
+    );
+
+    return Buffer.from(signatureBuffer).toString("base64url");
   }
 
   async verifyAccessToken(token: string): Promise<TokenPayload> {
@@ -103,7 +104,7 @@ export class JWTService {
         throw new JWTInvalidTokenError("Invalid token signature");
       }
 
-      const decodedPayload = this.decodeBase64(payload, TokenPayload);
+      const decodedPayload = this.decodeBase64Url(payload, TokenPayload);
 
       if (decodedPayload.exp && Date.now() >= decodedPayload.exp * 1000) {
         throw new JWTTokenExpiredError("Access token has expired");

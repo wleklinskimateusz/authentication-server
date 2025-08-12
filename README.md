@@ -37,6 +37,21 @@ bun install
 
 ## Running the Server
 
+### Run local postgres
+```bash
+docker compose up -d
+```
+and add the following to the .env file:
+
+```
+POSTGRES_URL=postgresql://postgres:password@localhost:5332/postgres
+```
+
+### Closing local postgres
+```bash
+docker compose down
+```
+
 ### Development mode (with hot reload):
 ```bash
 bun run dev
