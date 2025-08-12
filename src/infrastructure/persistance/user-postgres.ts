@@ -48,7 +48,6 @@ export class UserPostgres implements UserRepository {
       passwordHash,
       createdAt,
       updatedAt,
-      permissionGroups: [],
     });
   }
 
