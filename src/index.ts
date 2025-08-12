@@ -1,8 +1,8 @@
 import { UserService } from "./application/user.service";
-import { UserPostgres } from "./infrastructure/user-postgres";
+import { UserPostgres } from "./infrastructure/persistance/user-postgres";
 import { AuthController } from "./interfaces/auth.controller";
 
-import { Server } from "./server";
+import { Server } from "./infrastructure/http/server";
 
 class Application {
   private readonly server: Server;

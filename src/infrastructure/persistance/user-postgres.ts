@@ -1,7 +1,7 @@
-import { UserAuth } from "../domain/user";
+import { UserAuth } from "../../domain/user";
 import { sql } from "bun";
-import type { UserRepository } from "../application/user.service";
-import { ShouldNotHappenError } from "../common/error";
+import type { UserRepository } from "../../application/user.service";
+import { ShouldNotHappenError } from "../../common/error";
 import z from "zod";
 
 export class UserPostgres implements UserRepository {

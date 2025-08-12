@@ -17,6 +17,21 @@ export class Server {
     this.controllers = controllers;
   }
 
+  findController(path: string) {
+    return this.controllers.find((c) => {
+      const { path: controllerPath } = c.registerRoutes();
+      return path.startsWith(controllerPath);
+    });
+  }
+
+  findRoute(controller: Controller, path: string, method: string) {
+    const { path: controllerPath, routes } = controller.registerRoutes();
+    return routes.find((r) => {
+      const fullPath = controllerPath + r.path;
+      return fullPath === path && r.method === method;
+    });
+  }
+
   start() {
     console.log(`Server is running on port ${this.port}`);
     Bun.serve({
@@ -25,18 +40,9 @@ export class Server {
         const path = new URL(request.url).pathname;
         const method = request.method;
 
-        // find correct controller by looking at first part of path
-        const controller = this.controllers.find((c) => {
-          const { path: controllerPath } = c.registerRoutes();
-          return path.startsWith(controllerPath);
-        });
-
+        const controller = this.findController(path);
         if (controller) {
-          const { path: controllerPath, routes } = controller.registerRoutes();
-          const route = routes.find((r) => {
-            const fullPath = controllerPath + r.path;
-            return fullPath === path && r.method === method;
-          });
+          const route = this.findRoute(controller, path, method);
           if (route) {
             return route.handler(request);
           }
