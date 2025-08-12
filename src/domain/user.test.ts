@@ -1,44 +1,38 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, setSystemTime } from "bun:test";
 import { UserAuth } from "./user";
 
 describe("User", () => {
   it("should create a user", async () => {
-    const user = await UserAuth.create({
+    const user = new UserAuth({
+      id: "1",
       email: "test@test.com",
-      password: "password",
+      passwordHash: "password",
       username: "test",
-      permissionGroups: [],
     });
-    expect(user.id).toBeDefined();
+    expect(user.id).toBe("1");
+    expect(user.email).toBe("test@test.com");
     expect(user.username).toBe("test");
-    expect(user.hashedPassword).toBeDefined();
+    expect(user.hashedPassword).toBe("password");
     expect(user.createdAt).toBeDefined();
     expect(user.updatedAt).toBeDefined();
   });
 
-  it("should validate a password", async () => {
-    const user = await UserAuth.create({
+  it("should update a user", async () => {
+    setSystemTime(new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 0)));
+    const user = new UserAuth({
+      id: "1",
       email: "test@test.com",
-      password: "password",
+      passwordHash: "password",
       username: "test",
-      permissionGroups: [],
     });
-    expect(await user.validatePassword("password")).toBe(true);
-    expect(await user.validatePassword("wrong_password")).toBe(false);
-  });
-
-  it("should return a DTO of the user", async () => {
-    const user = await UserAuth.create({
-      email: "test@test.com",
-      password: "password",
-      username: "test",
-      permissionGroups: [],
-    });
-    expect(user.toDTO()).toEqual({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      permissionGroups: [],
-    });
+    const updatedAt = user.updatedAt;
+    setSystemTime(new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 500)));
+    user.email = "test2@test.com";
+    user.username = "test2";
+    user.hashedPassword = "password2";
+    expect(user.email).toBe("test2@test.com");
+    expect(user.username).toBe("test2");
+    expect(user.hashedPassword).toBe("password2");
+    expect(user.updatedAt.getTime()).toBeGreaterThan(updatedAt.getTime());
   });
 });

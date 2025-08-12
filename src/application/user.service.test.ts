@@ -7,6 +7,8 @@ import {
 } from "./user.service";
 import type { UserRepository } from "./user.service";
 import { UserAuth } from "../domain/user";
+import { PasswordHasher } from "../infrastructure/crypto/password-hasher";
+import { UuidGenerator } from "../infrastructure/crypto/uuid";
 
 // Mock repository for testing
 class MockUserRepository implements UserRepository {
@@ -44,12 +46,18 @@ class MockUserRepository implements UserRepository {
 }
 
 describe("UserService", () => {
+  const uuidGenerator = new UuidGenerator();
+  const passwordHasher = new PasswordHasher();
   let userService: UserService;
   let mockRepository: MockUserRepository;
 
   beforeEach(() => {
     mockRepository = new MockUserRepository();
-    userService = new UserService(mockRepository);
+    userService = new UserService(
+      mockRepository,
+      uuidGenerator,
+      passwordHasher
+    );
   });
 
   describe("register", () => {
@@ -63,10 +71,12 @@ describe("UserService", () => {
       expect(createdUser).not.toBeNull();
       expect(createdUser?.username).toBe(username);
       expect(createdUser?.email).toBe(`${username}@example.com`);
-      expect(createdUser?.permissionGroups).toEqual([]);
 
       // Verify password was hashed
-      const isValidPassword = await createdUser!.validatePassword(password);
+      const isValidPassword = await passwordHasher.verify(
+        password,
+        createdUser!.hashedPassword
+      );
       expect(isValidPassword).toBe(true);
     });
 
@@ -103,7 +113,6 @@ describe("UserService", () => {
       await userService.register(username, password);
 
       const createdUser = await mockRepository.findByUsername(username);
-      expect(createdUser?.permissionGroups).toEqual([]);
     });
 
     it("should generate unique IDs for different users", async () => {
@@ -200,7 +209,11 @@ describe("UserService", () => {
         delete: mock(() => Promise.resolve(undefined)),
       };
 
-      const serviceWithFailingRepo = new UserService(failingRepository);
+      const serviceWithFailingRepo = new UserService(
+        failingRepository,
+        new UuidGenerator(),
+        new PasswordHasher()
+      );
 
       expect(
         serviceWithFailingRepo.register("testuser", "password")
@@ -216,7 +229,11 @@ describe("UserService", () => {
         delete: mock(() => Promise.resolve(undefined)),
       };
 
-      const serviceWithNullRepo = new UserService(nullRepository);
+      const serviceWithNullRepo = new UserService(
+        nullRepository,
+        uuidGenerator,
+        passwordHasher
+      );
 
       expect(serviceWithNullRepo.login("testuser", "password")).rejects.toThrow(
         UserNotFoundError
@@ -235,11 +252,17 @@ describe("UserService", () => {
       expect(user).not.toBeNull();
 
       // Test correct password
-      const isValidCorrect = await user!.validatePassword(password);
+      const isValidCorrect = await passwordHasher.verify(
+        password,
+        user!.hashedPassword
+      );
       expect(isValidCorrect).toBe(true);
 
       // Test incorrect password
-      const isValidIncorrect = await user!.validatePassword("wrongpassword");
+      const isValidIncorrect = await passwordHasher.verify(
+        "wrongpassword",
+        user!.hashedPassword
+      );
       expect(isValidIncorrect).toBe(false);
     });
 
@@ -251,7 +274,10 @@ describe("UserService", () => {
       const user = await mockRepository.findByUsername(username);
 
       expect(user).not.toBeNull();
-      const isValid = await user!.validatePassword(password);
+      const isValid = await passwordHasher.verify(
+        password,
+        user!.hashedPassword
+      );
       expect(isValid).toBe(true);
     });
   });
@@ -294,11 +320,69 @@ describe("UserService", () => {
       userService["jwtService"].verifyAccessToken = mockVerifyAccessToken;
 
       // Verify the error is propagated
-      await expect(userService.verifyAccessToken(testToken)).rejects.toThrow(
+      expect(userService.verifyAccessToken(testToken)).rejects.toThrow(
         "Invalid JWT token"
       );
       expect(mockVerifyAccessToken).toHaveBeenCalledWith(testToken);
       expect(mockVerifyAccessToken).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("updateUser", () => {
+    it("should update a user", async () => {
+      const username = "testuser";
+      const password = "password123";
+      const newPassword = "newpassword123";
+      await userService.register(username, password);
+      const user = await mockRepository.findByUsername(username);
+      if (!user) {
+        throw new Error("User not found");
+      }
+      await userService.updateUser(user.id, {
+        username: "newusername",
+        password: newPassword,
+      });
+      const updatedUser = await mockRepository.findById(user.id);
+      expect(updatedUser?.username).toBe("newusername");
+      expect(updatedUser?.email).toBe(`${username}@example.com`);
+      expect(updatedUser?.hashedPassword).not.toBe(
+        await passwordHasher.hash(password)
+      );
+      const isValidPassword = await passwordHasher.verify(
+        newPassword,
+        updatedUser!.hashedPassword
+      );
+      expect(isValidPassword).toBe(true);
+    });
+
+    it("should throw UserNotFoundError when user does not exist", async () => {
+      expect(
+        userService.updateUser("non-existent-id", {
+          username: "newusername",
+          password: "newpassword123",
+        })
+      ).rejects.toThrow(UserNotFoundError);
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("should delete a user", async () => {
+      const username = "testuser";
+      const password = "password123";
+      await userService.register(username, password);
+      const user = await mockRepository.findByUsername(username);
+      if (!user) {
+        throw new Error("User not found");
+      }
+      await userService.deleteUser(user.id);
+      const deletedUser = await mockRepository.findById(user.id);
+      expect(deletedUser).toBeNull();
+    });
+
+    it("should throw UserNotFoundError when user does not exist", async () => {
+      expect(userService.deleteUser("non-existent-id")).rejects.toThrow(
+        UserNotFoundError
+      );
     });
   });
 });
