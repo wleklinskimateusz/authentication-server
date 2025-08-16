@@ -6,6 +6,7 @@ export class Service {
   private _updatedAt: Date = new Date();
   private _url?: string;
   private _icon?: string;
+  private _version: string;
 
   constructor({
     id,
@@ -15,6 +16,7 @@ export class Service {
     updatedAt,
     url,
     icon,
+    version = "1.0.0",
   }: {
     id: string;
     name: string;
@@ -23,6 +25,7 @@ export class Service {
     updatedAt?: Date;
     url?: string;
     icon?: string;
+    version?: string;
   }) {
     this.id = id;
     this._name = name;
@@ -31,6 +34,7 @@ export class Service {
     this._updatedAt = updatedAt || new Date();
     this._url = url;
     this._icon = icon;
+    this._version = version;
   }
 
   get name(): string {
@@ -70,6 +74,15 @@ export class Service {
 
   set icon(value: string | undefined) {
     this._icon = value;
+    this.touch();
+  }
+
+  get version(): string {
+    return this._version;
+  }
+
+  set version(value: string) {
+    this._version = value;
     this.touch();
   }
 

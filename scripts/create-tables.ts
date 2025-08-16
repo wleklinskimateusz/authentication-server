@@ -14,6 +14,7 @@ await sql`
 await sql`
     CREATE TABLE IF NOT EXISTS services (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        version TEXT NOT NULL DEFAULT '1.0.0',
         name TEXT NOT NULL UNIQUE,
         description TEXT NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

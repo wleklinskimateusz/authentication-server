@@ -21,26 +21,31 @@ describe("Service", () => {
     });
 
     it("should update attributes", () => {
-        setSystemTime(new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 0)));
+        const initialTime = Date.UTC(2025, 0, 1, 0, 0, 0, 0);
+        setSystemTime(initialTime);
         const service = new Service({
             id: "1",
             name: "Test Service",
             description: "This is a test service",
         });
 
-        setSystemTime(new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 500)));
+        const deltaTime = 500;
+
+        setSystemTime(initialTime + deltaTime);
 
         service.name = "Updated Service";
         service.description = "Updated description";
         service.url = "https://example.com";
         service.icon = "https://example.com/icon.png";
+        service.version = "2.0.0";
 
         expect(service.name).toBe("Updated Service");
         expect(service.description).toBe("Updated description");
         expect(service.url).toBe("https://example.com");
         expect(service.icon).toBe("https://example.com/icon.png");
+        expect(service.version).toBe("2.0.0");
         expect(service.updatedAt.getTime()).toEqual(
-            service.createdAt.getTime() + 500,
+            service.createdAt.getTime() + deltaTime,
         );
     });
 });

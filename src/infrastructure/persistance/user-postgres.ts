@@ -1,10 +1,24 @@
 import { UserAuth } from "../../domain/user";
 import { sql } from "bun";
 import type { UserRepository } from "../../application/user.service";
-import { ShouldNotHappenError } from "../../domain/errors/base-error";
 import z from "zod";
+import { BasePostgres } from "./base-postgres";
 
-export class UserPostgres implements UserRepository {
+const userRowSchema = z.tuple([
+  z.string(), // id
+  z.string(), // email
+  z.string(), // username
+  z.string(), // hashed_password
+  z.date(), // created_at
+  z.date(), // updated_at
+]);
+
+type UserRow = z.infer<typeof userRowSchema>;
+
+export class UserPostgres extends BasePostgres<UserRow, UserAuth>
+  implements UserRepository {
+  rowSchema = userRowSchema;
+
   async create(user: UserAuth): Promise<void> {
     const query = sql`
     INSERT INTO users (id, email, username, hashed_password, created_at, updated_at) 
@@ -12,53 +26,25 @@ export class UserPostgres implements UserRepository {
     await query.execute();
   }
 
-  private toUser(sqlResponse: undefined) {
-    const schema = z.union([
-      z.tuple([
-        z.tuple([
-          z.string(),
-          z.string(),
-          z.string(),
-          z.string(),
-          z.date(),
-          z.date(),
-        ]),
-      ]),
-      z.tuple([]),
-    ]);
-    const parsed = schema.safeParse(sqlResponse);
-
-    if (!parsed.success) {
-      throw new ShouldNotHappenError(
-        "Invalid SQL response: " + JSON.stringify(parsed.error),
-      );
-    }
-
-    if (parsed.data.length === 0) {
-      return null;
-    }
-
-    const [id, email, username, passwordHash, createdAt, updatedAt] = parsed
-      .data[0]!;
-
+  override toInstance(row: UserRow) {
     return new UserAuth({
-      id,
-      email,
-      username,
-      passwordHash,
-      createdAt,
-      updatedAt,
+      id: row[0],
+      email: row[1],
+      username: row[2],
+      passwordHash: row[3],
+      createdAt: row[4],
+      updatedAt: row[5],
     });
   }
 
   async findById(id: string) {
-    return this.toUser(
+    return this.parseUniqueResponse(
       await sql`SELECT * FROM users WHERE id = ${id}`.values(),
     );
   }
 
   async findByUsername(username: string) {
-    return this.toUser(
+    return this.parseUniqueResponse(
       await sql`SELECT * FROM users WHERE username = ${username}`.values(),
     );
   }

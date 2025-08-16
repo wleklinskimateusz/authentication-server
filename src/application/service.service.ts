@@ -38,6 +38,7 @@ export class ServiceService {
             description?: string;
             url?: string;
             icon?: string;
+            version?: string;
         },
     ) {
         const service = await this.serviceRepository.findById(id);
@@ -57,6 +58,10 @@ export class ServiceService {
         }
         if (params.icon) {
             service.icon = params.icon;
+        }
+
+        if (params.version) {
+            service.version = params.version;
         }
 
         await this.serviceRepository.update(service);
