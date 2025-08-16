@@ -22,8 +22,8 @@ export class JWTService {
   accessTokenExpiry: number; // in seconds
 
   constructor() {
-    this.accessTokenSecret =
-      process.env.JWT_ACCESS_SECRET || "your-access-secret-key";
+    this.accessTokenSecret = process.env.JWT_ACCESS_SECRET ||
+      "your-access-secret-key";
     this.accessTokenExpiry = parseInt(process.env.JWT_ACCESS_EXPIRY || "86400"); // 24 hours
   }
 
@@ -57,7 +57,7 @@ export class JWTService {
     const payloadStr = this.encodeBase64Url(payload);
     const signature = await this.createSignature(
       header + "." + payloadStr,
-      this.accessTokenSecret
+      this.accessTokenSecret,
     );
 
     return `${header}.${payloadStr}.${signature}`;
@@ -69,13 +69,13 @@ export class JWTService {
       new TextEncoder().encode(secret),
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"]
+      ["sign"],
     );
 
     const signatureBuffer = await crypto.subtle.sign(
       "HMAC",
       key,
-      new TextEncoder().encode(data)
+      new TextEncoder().encode(data),
     );
 
     return Buffer.from(signatureBuffer).toString("base64url");
@@ -96,7 +96,7 @@ export class JWTService {
 
       const expectedSignature = await this.createSignature(
         header + "." + payload,
-        this.accessTokenSecret
+        this.accessTokenSecret,
       );
       if (signature !== expectedSignature) {
         throw new JWTInvalidTokenError("Invalid token signature");
@@ -137,11 +137,13 @@ export class JWTService {
 export class JWTInvalidTokenError extends BaseError {
   constructor(message: string) {
     super(message, 401);
+    this.name = "JWTInvalidTokenError";
   }
 }
 
 export class JWTTokenExpiredError extends BaseError {
   constructor(message: string) {
     super(message, 401);
+    this.name = "JWTTokenExpiredError";
   }
 }

@@ -164,4 +164,12 @@ describe("PermissionService", () => {
 
         expect(hasPermission).toBe(false);
     });
+
+    it("should throw PermissionNotFound when updating non-existent permission", async () => {
+        expect(
+            permissionService.updatePermission("non-existent-id", {
+                name: "Updated Permission",
+            }),
+        ).rejects.toThrow("cannot update permission with id non-existent-id");
+    });
 });

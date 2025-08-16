@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import {
     PermissionAlreadyAssigned,
     PermissionGroup,
-    PermissionNotFound,
+    PermissionNotFoundInGroup,
 } from "./permission-group";
 import { Permission } from "./permission";
 import { Service } from "./service";
@@ -144,6 +144,6 @@ describe("PermissionGroup", () => {
                 permissionName: "non-existing",
                 serviceName: "service",
             })
-        ).toThrow(PermissionNotFound);
+        ).toThrow(PermissionNotFoundInGroup);
     });
 });

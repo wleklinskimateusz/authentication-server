@@ -1,3 +1,4 @@
+import { BaseError } from "../common/error";
 import { Permission } from "../domain/permission";
 import type { Service } from "../domain/service";
 import type { UuidGenerator } from "../domain/services/uuid-generator";
@@ -7,7 +8,10 @@ export interface PermissionRepository {
   findById(id: string): Promise<Permission | null>;
   update(permission: Permission): Promise<void>;
   delete(id: string): Promise<void>;
-  findUserPermissions(userId: string, serviceId: string): Promise<Permission[]>;
+  findUserPermissions(
+    userId: string,
+    serviceName: string,
+  ): Promise<Permission[]>;
 }
 
 export class PermissionService {
@@ -49,7 +53,7 @@ export class PermissionService {
     const permission = await this.permissionRepository.findById(id);
 
     if (!permission) {
-      throw new Error(`Permission with id ${id} not found`);
+      throw new PermissionNotFound(`cannot update permission with id ${id}`);
     }
 
     if (params.name) {
@@ -68,7 +72,7 @@ export class PermissionService {
     const permission = await this.permissionRepository.findById(id);
 
     if (!permission) {
-      throw new Error(`Permission with id ${id} not found`);
+      throw new PermissionNotFound(`cannot delete permission with id ${id}`);
     }
 
     await this.permissionRepository.delete(id);
@@ -78,7 +82,7 @@ export class PermissionService {
     const permission = await this.permissionRepository.findById(id);
 
     if (!permission) {
-      throw new Error(`Permission with id ${id} not found`);
+      throw new PermissionNotFound(`Permission with id ${id} not found`);
     }
 
     return permission;
@@ -86,18 +90,28 @@ export class PermissionService {
 
   async hasPermission(
     userId: string,
-    serviceId: string,
+    serviceName: string,
     permissionName: string,
   ) {
-    const permissions = await this.getPermissionsForService(userId, serviceId);
+    const permissions = await this.getPermissionsForService(
+      userId,
+      serviceName,
+    );
 
     return permissions.some((p) => p.name === permissionName);
   }
 
-  async getPermissionsForService(userId: string, serviceId: string) {
+  getPermissionsForService(userId: string, serviceName: string) {
     return this.permissionRepository.findUserPermissions(
       userId,
-      serviceId,
+      serviceName,
     );
+  }
+}
+
+export class PermissionNotFound extends BaseError {
+  constructor(message: string) {
+    super(message, 404);
+    this.name = "PermissionNotFound";
   }
 }

@@ -70,7 +70,9 @@ export class PermissionGroup {
       !(p.isEqual(permission))
     );
     if (oldLength === this._permissions.length) {
-      throw new PermissionNotFound("could not remove not exisitng permission");
+      throw new PermissionNotFoundInGroup(
+        "could not remove not exisitng permission",
+      );
     }
     this.touch();
   }
@@ -91,11 +93,13 @@ export class PermissionGroup {
 export class PermissionAlreadyAssigned extends BaseError {
   constructor(message = "this permission is already in this group") {
     super(message, 400);
+    this.name = "PermissionAlreadyAssigned";
   }
 }
 
-export class PermissionNotFound extends BaseError {
+export class PermissionNotFoundInGroup extends BaseError {
   constructor(message: string) {
     super(message, 404);
+    this.name = "PermissionNotFoundInGroup";
   }
 }

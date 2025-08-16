@@ -16,18 +16,21 @@ export interface UserRepository {
 export class UserAlreadyExistsError extends BaseError {
   constructor(message: string) {
     super(message, 400);
+    this.name = "UserAlreadyExistsError";
   }
 }
 
 export class UserNotFoundError extends BaseError {
   constructor(message: string) {
     super(message, 404);
+    this.name = "UserNotFoundError";
   }
 }
 
 export class UserInvalidPasswordError extends BaseError {
   constructor(message: string) {
     super(message, 401);
+    this.name = "UserInvalidPasswordError";
   }
 }
 
@@ -37,7 +40,7 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly uuidGenerator: UuidGenerator,
-    private readonly passwordHasher: PasswordHasher
+    private readonly passwordHasher: PasswordHasher,
   ) {
     this.jwtService = new JWTService();
   }
@@ -50,7 +53,7 @@ export class UserService {
     const isValid = await this.validatePassword(password, user.hashedPassword);
     if (!isValid) {
       throw new UserInvalidPasswordError(
-        `Invalid password for user ${username}`
+        `Invalid password for user ${username}`,
       );
     }
 
@@ -61,7 +64,7 @@ export class UserService {
     const existingUser = await this.userRepository.findByUsername(username);
     if (existingUser) {
       throw new UserAlreadyExistsError(
-        `User with username ${username} already exists`
+        `User with username ${username} already exists`,
       );
     }
     await this.userRepository.create(
@@ -69,7 +72,7 @@ export class UserService {
         email: `${username}@example.com`,
         username,
         password,
-      })
+      }),
     );
   }
 
@@ -93,7 +96,7 @@ export class UserService {
 
   private async validatePassword(
     password: string,
-    hashedPassword: string
+    hashedPassword: string,
   ): Promise<boolean> {
     return await this.passwordHasher.verify(password, hashedPassword);
   }
@@ -116,7 +119,7 @@ export class UserService {
       email: string;
       username: string;
       password: string;
-    }>
+    }>,
   ): Promise<void> {
     const user = await this.userRepository.findById(id);
     if (!user) {

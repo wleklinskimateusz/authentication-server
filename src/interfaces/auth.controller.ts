@@ -6,6 +6,7 @@ import type { Controller } from "../infrastructure/http/server";
 export class InvalidRequestBodyError extends BaseError {
   constructor(message: string) {
     super(message, 400);
+    this.name = "InvalidRequestBodyError";
   }
 }
 
@@ -21,7 +22,7 @@ export class AuthController implements Controller {
       const { success, data, error } = schema.safeParse(body);
       if (!success) {
         throw new InvalidRequestBodyError(
-          `Invalid request body: ${JSON.stringify(error.message)}`
+          `Invalid request body: ${JSON.stringify(error.message)}`,
         );
       }
       return data;
@@ -31,11 +32,11 @@ export class AuthController implements Controller {
       }
       if (error instanceof Error) {
         throw new InvalidRequestBodyError(
-          `Invalid request body: ${JSON.stringify(error.message)}`
+          `Invalid request body: ${JSON.stringify(error.message)}`,
         );
       }
       throw new InvalidRequestBodyError(
-        `Invalid request body: ${JSON.stringify(error)}`
+        `Invalid request body: ${JSON.stringify(error)}`,
       );
     }
   }
@@ -44,7 +45,7 @@ export class AuthController implements Controller {
     if (error instanceof BaseError) {
       return Response.json(
         { error: error.message },
-        { status: error.statusCode }
+        { status: error.statusCode },
       );
     }
     return Response.json(
@@ -52,7 +53,7 @@ export class AuthController implements Controller {
         error: "Internal server error",
         cause: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -63,7 +64,7 @@ export class AuthController implements Controller {
         z.object({
           username: z.string(),
           password: z.string(),
-        })
+        }),
       );
       const token = await this.userService.login(username, password);
       return Response.json(token, { status: 200 });
@@ -79,7 +80,7 @@ export class AuthController implements Controller {
         z.object({
           username: z.string(),
           password: z.string(),
-        })
+        }),
       );
       await this.userService.register(username, password);
       return Response.json({ message: "User registered" }, { status: 201 });
