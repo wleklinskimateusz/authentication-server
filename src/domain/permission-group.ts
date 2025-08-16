@@ -3,19 +3,19 @@ import { Permission } from "./permission";
 
 export class PermissionGroup {
   readonly id: string;
-  private _name: string;
-  private _description: string;
+  name: string;
+  description: string;
   private _permissions: Permission[];
   readonly createdAt: Date = new Date();
-  private _updatedAt: Date = new Date();
+  updatedAt: Date = new Date();
 
   constructor({
     id,
     name,
     description,
     permissions,
-    createdAt,
-    updatedAt,
+    createdAt = new Date(),
+    updatedAt = new Date(),
   }: {
     id: string;
     name: string;
@@ -25,33 +25,11 @@ export class PermissionGroup {
     updatedAt?: Date;
   }) {
     this.id = id;
-    this._name = name;
-    this._description = description;
+    this.name = name;
+    this.description = description;
     this._permissions = permissions;
-    this.createdAt = createdAt || new Date();
-    this._updatedAt = updatedAt || new Date();
-  }
-
-  get updatedAt(): Date {
-    return this._updatedAt;
-  }
-
-  get name(): string {
-    return this._name;
-  }
-
-  set name(value: string) {
-    this._name = value;
-    this.touch();
-  }
-
-  get description(): string {
-    return this._description;
-  }
-
-  set description(value: string) {
-    this._description = value;
-    this.touch();
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
   }
 
   addPermission(permission: Permission) {
@@ -59,7 +37,6 @@ export class PermissionGroup {
       throw new PermissionAlreadyAssigned();
     }
     this._permissions.push(permission);
-    this.touch();
   }
 
   removePermission(
@@ -74,7 +51,6 @@ export class PermissionGroup {
         "could not remove not exisitng permission",
       );
     }
-    this.touch();
   }
 
   hasPermission(permission: Parameters<Permission["isEqual"]>[0]): boolean {
@@ -83,10 +59,6 @@ export class PermissionGroup {
 
   get permissions(): Permission[] {
     return [...this._permissions];
-  }
-
-  private touch() {
-    this._updatedAt = new Date();
   }
 }
 

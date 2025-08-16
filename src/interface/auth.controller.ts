@@ -12,35 +12,27 @@ export class AuthController extends BaseController implements Controller {
   }
 
   async login(req: Request) {
-    try {
-      const { username, password } = await this.validateRequestBody(
-        req,
-        z.object({
-          username: z.string(),
-          password: z.string(),
-        }),
-      );
-      const token = await this.userService.login(username, password);
-      return Response.json(token, { status: 200 });
-    } catch (error) {
-      return this.handleError(error);
-    }
+    const { username, password } = await this.validateRequestBody(
+      req,
+      z.object({
+        username: z.string(),
+        password: z.string(),
+      }),
+    );
+    const token = await this.userService.login(username, password);
+    return Response.json(token, { status: 200 });
   }
 
   async register(req: Request) {
-    try {
-      const { username, password } = await this.validateRequestBody(
-        req,
-        z.object({
-          username: z.string(),
-          password: z.string(),
-        }),
-      );
-      await this.userService.register(username, password);
-      return Response.json({ message: "User registered" }, { status: 201 });
-    } catch (error) {
-      return this.handleError(error);
-    }
+    const { username, password } = await this.validateRequestBody(
+      req,
+      z.object({
+        username: z.string(),
+        password: z.string(),
+      }),
+    );
+    await this.userService.register(username, password);
+    return Response.json({ message: "User registered" }, { status: 201 });
   }
 
   registerRoutes() {

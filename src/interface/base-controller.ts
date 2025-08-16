@@ -43,20 +43,4 @@ export abstract class BaseController {
             );
         }
     }
-
-    protected handleError(error: unknown) {
-        if (error instanceof BaseError) {
-            return Response.json(
-                { error: error.message },
-                { status: error.statusCode },
-            );
-        }
-        return Response.json(
-            {
-                error: "Internal server error",
-                cause: error instanceof Error ? error.message : "Unknown error",
-            },
-            { status: 500 },
-        );
-    }
 }

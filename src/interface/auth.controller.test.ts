@@ -7,6 +7,7 @@ import {
 import type { TokenResponse } from "../application/jwt.service";
 import { NotFound } from "../domain/errors/not-found";
 import { ResourceAlreadyExists } from "../domain/errors/resource-already-exists";
+import { InvalidRequestBodyError } from "./base-controller";
 
 // Simple mock for testing
 const createMockUserService = () => ({
@@ -60,11 +61,9 @@ describe("UserController", () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const response = await userController.login(request);
-      const body = (await response.json()) as { error: string };
-
-      expect(response.status).toBe(400);
-      expect(body.error).toContain("Invalid request body");
+      expect(userController.login(request)).rejects.toThrow(
+        InvalidRequestBodyError,
+      );
     });
 
     it("should return 401 for invalid credentials", async () => {
@@ -80,11 +79,9 @@ describe("UserController", () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const response = await userController.login(request);
-      const body = (await response.json()) as { error: string };
-
-      expect(response.status).toBe(401);
-      expect(body.error).toBe("Invalid credentials");
+      expect(userController.login(request)).rejects.toThrow(
+        UserInvalidPasswordError,
+      );
     });
 
     it("should return 404 for user not found", async () => {
@@ -100,29 +97,7 @@ describe("UserController", () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const response = await userController.login(request);
-      const body = (await response.json()) as { error: string };
-
-      expect(response.status).toBe(404);
-      expect(body.error).toBe("User not found");
-    });
-
-    it("should return 500 for service errors", async () => {
-      const serviceError = new Error("Database connection failed");
-      mockUserService.login.mockRejectedValue(serviceError);
-
-      const request = new Request("http://localhost/login", {
-        method: "POST",
-        body: JSON.stringify({ username: "testuser", password: "password123" }),
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const response = await userController.login(request);
-      const body = (await response.json()) as { error: string; cause: string };
-
-      expect(response.status).toBe(500);
-      expect(body.error).toBe("Internal server error");
-      expect(body.cause).toBe("Database connection failed");
+      expect(userController.login(request)).rejects.toThrow(NotFound);
     });
   });
 
@@ -153,15 +128,12 @@ describe("UserController", () => {
         body: JSON.stringify({ username: "newuser" }), // missing password
         headers: { "Content-Type": "application/json" },
       });
-
-      const response = await userController.register(request);
-      const body = (await response.json()) as { error: string };
-
-      expect(response.status).toBe(400);
-      expect(body.error).toContain("Invalid request body");
+      expect(userController.register(request)).rejects.toThrow(
+        InvalidRequestBodyError,
+      );
     });
 
-    it("should return 400 for user already exists", async () => {
+    it("should return 409 for user already exists", async () => {
       const existsError = new ResourceAlreadyExists("User already exists");
       mockUserService.register.mockRejectedValue(existsError);
 
@@ -174,29 +146,9 @@ describe("UserController", () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const response = await userController.register(request);
-      const body = (await response.json()) as { error: string };
-
-      expect(response.status).toBe(409);
-      expect(body.error).toBe("User already exists");
-    });
-
-    it("should return 500 for service errors", async () => {
-      const serviceError = new Error("Database connection failed");
-      mockUserService.register.mockRejectedValue(serviceError);
-
-      const request = new Request("http://localhost/register", {
-        method: "POST",
-        body: JSON.stringify({ username: "newuser", password: "password123" }),
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const response = await userController.register(request);
-      const body = (await response.json()) as { error: string; cause: string };
-
-      expect(response.status).toBe(500);
-      expect(body.error).toBe("Internal server error");
-      expect(body.cause).toBe("Database connection failed");
+      expect(userController.register(request)).rejects.toThrow(
+        ResourceAlreadyExists,
+      );
     });
   });
 
@@ -227,11 +179,9 @@ describe("UserController", () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const response = await userController.login(request);
-      const body = (await response.json()) as { error: string };
-
-      expect(response.status).toBe(400);
-      expect(body.error).toContain("Invalid request body");
+      expect(userController.login(request)).rejects.toThrow(
+        InvalidRequestBodyError,
+      );
     });
 
     it("should handle malformed JSON", async () => {
@@ -241,11 +191,9 @@ describe("UserController", () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const response = await userController.login(request);
-      const body = (await response.json()) as { error: string };
-
-      expect(response.status).toBe(400);
-      expect(body.error).toContain("Invalid request body");
+      expect(userController.login(request)).rejects.toThrow(
+        InvalidRequestBodyError,
+      );
     });
   });
 

@@ -22,29 +22,4 @@ describe("Permission", () => {
         expect(permission.createdAt).toBeInstanceOf(Date);
         expect(permission.updatedAt).toBeInstanceOf(Date);
     });
-
-    it("should update name and description", () => {
-        setSystemTime(new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 0)));
-        const permission = new Permission({
-            id: "1",
-            name: "Test Permission",
-            service: new Service({
-                id: "service1",
-                name: "Test Service",
-                description: "Test Service Description",
-            }),
-            description: "This is a test permission",
-        });
-
-        setSystemTime(new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 500)));
-
-        permission.name = "Updated Permission";
-        permission.description = "Updated description";
-
-        expect(permission.name).toBe("Updated Permission");
-        expect(permission.description).toBe("Updated description");
-        expect(permission.updatedAt.getTime()).toEqual(
-            permission.createdAt.getTime() + 500,
-        );
-    });
 });

@@ -27,29 +27,6 @@ describe("PermissionGroup", () => {
         expect(pg.permissions).toEqual([]);
     });
 
-    it("should update attributes", () => {
-        const initialTime = Date.UTC(2025, 7, 5);
-        setSystemTime(initialTime);
-        const pg = new PermissionGroup({
-            id: "1",
-            name: "hello",
-            description: "short test",
-            permissions: [],
-        });
-
-        const newTime = initialTime + 1000 * 60;
-        setSystemTime(newTime);
-
-        pg.description = "new description";
-        pg.name = "new name";
-
-        expect(pg.createdAt.getTime()).toBeCloseTo(initialTime);
-        expect(pg.updatedAt.getTime()).toBeCloseTo(newTime);
-
-        expect(pg.description).toBe("new description");
-        expect(pg.name).toBe("new name");
-    });
-
     it("should add permission to a group", () => {
         const pg = new PermissionGroup({
             id: "1",

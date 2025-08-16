@@ -1,12 +1,20 @@
+import { BaseError } from "../../domain/errors/base-error";
+import { NotFound } from "../../domain/errors/not-found";
+
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+type Middleware = (request: Request) => Promise<void>;
+
 export type ControllerRoute = {
   path: string;
   method: HttpMethod;
   handler: (request: Request) => Promise<Response>;
+  middleware?: Middleware;
 };
 
 export interface Controller {
   registerRoutes(): { path: string; routes: ControllerRoute[] };
+  middleware?: Middleware;
 }
 
 export class Server {
@@ -19,18 +27,54 @@ export class Server {
   }
 
   findController(path: string) {
-    return this.controllers.find((c) => {
+    const controller = this.controllers.find((c) => {
       const { path: controllerPath } = c.registerRoutes();
       return path.startsWith(controllerPath);
     });
+    if (!controller) {
+      throw new NotFound(
+        `No route found for path: ${path.split("/")[0]}/`,
+      );
+    }
+    return controller;
   }
 
   findRoute(controller: Controller, path: string, method: string) {
     const { path: controllerPath, routes } = controller.registerRoutes();
-    return routes.find((r) => {
+    const potentialRoutes = routes.filter((r) => {
       const fullPath = controllerPath + r.path;
-      return fullPath === path && r.method === method;
+      return fullPath === path;
     });
+
+    if (!potentialRoutes.length) {
+      throw new NotFound(`No route found for ${method} ${path}`);
+    }
+
+    const route = potentialRoutes.find((r) => r.method === method);
+
+    if (!route) {
+      throw new MethodNotAllowedError(
+        `Method ${method} not allowed for route ${path}`,
+      );
+    }
+
+    return route;
+  }
+
+  handleError(error: unknown) {
+    if (error instanceof BaseError) {
+      return Response.json(
+        { error: error.message },
+        { status: error.statusCode },
+      );
+    }
+    return Response.json(
+      {
+        error: "Internal server error",
+        cause: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 
   start() {
@@ -38,19 +82,34 @@ export class Server {
     Bun.serve({
       port: this.port,
       fetch: async (request) => {
-        const path = new URL(request.url).pathname;
-        const method = request.method;
+        try {
+          const path = new URL(request.url).pathname;
+          const method = request.method;
 
-        const controller = this.findController(path);
-        if (controller) {
-          const route = this.findRoute(controller, path, method);
-          if (route) {
-            return route.handler(request);
+          const controller = this.findController(path);
+
+          if (controller.middleware) {
+            await controller.middleware(request);
           }
-        }
 
-        return new Response("Not found", { status: 404 });
+          const route = this.findRoute(controller, path, method);
+
+          if (route.middleware) {
+            await route.middleware(request);
+          }
+
+          return route.handler(request);
+        } catch (error) {
+          return this.handleError(error);
+        }
       },
     });
+  }
+}
+
+export class MethodNotAllowedError extends BaseError {
+  constructor(message: string) {
+    super(message, 405);
+    this.name = "MethodNotAllowedError";
   }
 }

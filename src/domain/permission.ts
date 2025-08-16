@@ -2,19 +2,19 @@ import type { Service } from "./service";
 
 export class Permission {
   readonly id: string;
-  private _name: string;
+  name: string;
   readonly service: Service;
-  private _description: string;
+  description: string;
   readonly createdAt: Date = new Date();
-  private _updatedAt: Date = new Date();
+  updatedAt: Date = new Date();
 
   constructor({
     id,
     name,
     service,
     description,
-    createdAt,
-    updatedAt,
+    createdAt = new Date(),
+    updatedAt = new Date(),
   }: {
     id: string;
     name: string;
@@ -24,30 +24,11 @@ export class Permission {
     updatedAt?: Date;
   }) {
     this.id = id;
-    this._name = name;
+    this.name = name;
     this.service = service;
-    this._description = description;
-    this.createdAt = createdAt || new Date();
-    this._updatedAt = updatedAt || new Date();
-  }
-
-  get name(): string {
-    return this._name;
-  }
-  set name(value: string) {
-    this._name = value;
-    this._updatedAt = new Date();
-  }
-  get description(): string {
-    return this._description;
-  }
-  set description(value: string) {
-    this._description = value;
-    this._updatedAt = new Date();
-  }
-
-  get updatedAt(): Date {
-    return this._updatedAt;
+    this.description = description;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
   }
 
   isEqual(
@@ -56,10 +37,10 @@ export class Permission {
       | Permission,
   ) {
     if (otherPermission instanceof Permission) {
-      return this._name === otherPermission.name &&
+      return this.name === otherPermission.name &&
         this.service.name === otherPermission.service.name;
     }
-    return this._name === otherPermission.permissionName &&
+    return this.name === otherPermission.permissionName &&
       this.service.name === otherPermission.serviceName;
   }
 }

@@ -4,7 +4,9 @@ import { ShouldNotHappenError } from "../../domain/errors/should-not-happen-erro
 export abstract class BasePostgres<TRow, TInstance> {
     protected abstract rowSchema: z.ZodType<TRow>;
 
-    protected parseUniqueResponse(sqlResponse: unknown): TInstance | null {
+    protected parseUniqueResponse(
+        sqlResponse: unknown,
+    ): Promise<TInstance> | TInstance | null {
         const schema = z.union([
             z.tuple([
                 this.rowSchema,
@@ -26,7 +28,9 @@ export abstract class BasePostgres<TRow, TInstance> {
         return this.toInstance(parsed.data[0]);
     }
 
-    protected parseMultipleResponse(sqlResponse: unknown): TInstance[] {
+    protected parseMultipleResponse(
+        sqlResponse: unknown,
+    ): Promise<TInstance[]> {
         const schema = z.array(this.rowSchema);
         const parsed = schema.safeParse(sqlResponse);
 
@@ -36,8 +40,10 @@ export abstract class BasePostgres<TRow, TInstance> {
             );
         }
 
-        return parsed.data.map((row) => this.toInstance(row));
+        return Promise.all(
+            parsed.data.map(async (row) => await this.toInstance(row)),
+        );
     }
 
-    abstract toInstance(row: TRow): TInstance;
+    abstract toInstance(row: TRow): TInstance | Promise<TInstance>;
 }

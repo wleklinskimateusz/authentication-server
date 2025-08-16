@@ -58,12 +58,14 @@ export class ServicePostgres extends BasePostgres<ServiceRow, Service>
         `;
         await query.execute();
     }
+
     async delete(id: string): Promise<void> {
         const query = sql`
         DELETE FROM services WHERE id = ${id}
         `;
         await query.execute();
     }
+
     async findByName(name: string): Promise<Service | null> {
         return this.parseUniqueResponse(
             await sql`
@@ -71,10 +73,11 @@ export class ServicePostgres extends BasePostgres<ServiceRow, Service>
         `.values(),
         );
     }
-    findAll(): Service[] {
+
+    async findAll(): Promise<Service[]> {
         const query = sql`
         SELECT * FROM services
         `;
-        return this.parseMultipleResponse(query.values());
+        return this.parseMultipleResponse(await query.values());
     }
 }

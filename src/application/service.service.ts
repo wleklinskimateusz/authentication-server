@@ -6,7 +6,7 @@ export interface ServiceRepository {
     update(service: Service): Promise<void>;
     delete(id: string): Promise<void>;
     findByName(name: string): Promise<Service | null>;
-    findAll(): Service[];
+    findAll(): Promise<Service[]>;
 }
 import { Service } from "../domain/service";
 import type { UuidGenerator } from "../domain/services/uuid-generator";
