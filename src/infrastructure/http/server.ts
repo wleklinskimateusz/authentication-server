@@ -1,11 +1,12 @@
-interface Route {
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+export type ControllerRoute = {
   path: string;
-  method: string;
+  method: HttpMethod;
   handler: (request: Request) => Promise<Response>;
-}
+};
 
 export interface Controller {
-  registerRoutes(): { path: string; routes: Route[] };
+  registerRoutes(): { path: string; routes: ControllerRoute[] };
 }
 
 export class Server {

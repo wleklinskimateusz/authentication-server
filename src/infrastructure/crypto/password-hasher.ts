@@ -19,7 +19,14 @@ export class PasswordHasher implements PasswordHasherInterface {
       return await Bun.password.verify(password, hash);
     } catch (error) {
       console.error(error);
-      throw new PasswordHashError("Failed to verify password");
+      if (error instanceof Error) {
+        throw new PasswordHashError(
+          `Password verification failed: ${error.message}`,
+        );
+      }
+      throw new PasswordHashError(
+        "Password verification failed due to an unknown error",
+      );
     }
   }
 }

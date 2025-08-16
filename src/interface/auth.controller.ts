@@ -1,60 +1,14 @@
 import z from "zod";
-import { UserService } from "../application/user.service";
-import { BaseError } from "../domain/errors/base-error";
-import type { Controller } from "../infrastructure/http/server";
+import type {
+  Controller,
+  ControllerRoute,
+} from "../infrastructure/http/server";
+import { BaseController } from "./base-controller";
+import type { UserService } from "../application/user.service";
 
-export class InvalidRequestBodyError extends BaseError {
-  constructor(message: string) {
-    super(message, 400);
-    this.name = "InvalidRequestBodyError";
-  }
-}
-
-export class AuthController implements Controller {
-  private readonly userService: UserService;
+export class AuthController extends BaseController implements Controller {
   constructor(userService: UserService) {
-    this.userService = userService;
-  }
-
-  private async validateRequestBody<T>(req: Request, schema: z.ZodSchema<T>) {
-    try {
-      const body = await req.json();
-      const { success, data, error } = schema.safeParse(body);
-      if (!success) {
-        throw new InvalidRequestBodyError(
-          `Invalid request body: ${JSON.stringify(error.message)}`,
-        );
-      }
-      return data;
-    } catch (error) {
-      if (error instanceof InvalidRequestBodyError) {
-        throw error;
-      }
-      if (error instanceof Error) {
-        throw new InvalidRequestBodyError(
-          `Invalid request body: ${JSON.stringify(error.message)}`,
-        );
-      }
-      throw new InvalidRequestBodyError(
-        `Invalid request body: ${JSON.stringify(error)}`,
-      );
-    }
-  }
-
-  private handleError(error: unknown) {
-    if (error instanceof BaseError) {
-      return Response.json(
-        { error: error.message },
-        { status: error.statusCode },
-      );
-    }
-    return Response.json(
-      {
-        error: "Internal server error",
-        cause: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    super(userService);
   }
 
   async login(req: Request) {
@@ -101,7 +55,7 @@ export class AuthController implements Controller {
         method: "POST",
         handler: this.register.bind(this),
       },
-    ];
+    ] satisfies ControllerRoute[];
 
     return { path: "/auth", routes };
   }
