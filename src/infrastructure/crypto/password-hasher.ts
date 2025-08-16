@@ -1,4 +1,5 @@
 import { BaseError } from "../../domain/errors/base-error";
+import { ShouldNotHappenError } from "../../domain/errors/should-not-happen-error";
 import type { PasswordHasher as PasswordHasherInterface } from "../../domain/services/password-hasher";
 
 export class PasswordHashError extends BaseError {
@@ -14,18 +15,24 @@ export class PasswordHasher implements PasswordHasherInterface {
     return Bun.password.hash(password);
   }
 
+  private validatePassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
+    return Bun.password.verify(password, hashedPassword);
+  }
+
   async verify(password: string, hash: string): Promise<boolean> {
     try {
-      return await Bun.password.verify(password, hash);
+      return await this.validatePassword(password, hash);
     } catch (error) {
-      console.error(error);
-      if (error instanceof Error) {
-        throw new PasswordHashError(
-          `Password verification failed: ${error.message}`,
+      if (!(error instanceof Error)) {
+        throw new ShouldNotHappenError(
+          `Unexpected error type: ${typeof error}`,
         );
       }
       throw new PasswordHashError(
-        "Password verification failed due to an unknown error",
+        `Password verification failed: ${error.message}`,
       );
     }
   }
