@@ -1,9 +1,11 @@
-import { BaseError } from "../common/error";
+import { BaseError } from "../domain/errors/base-error";
 import { UserAuth } from "../domain/user";
 import { JWTService } from "./jwt.service";
 import type { TokenResponse } from "./jwt.service";
 import type { UuidGenerator } from "../domain/services/uuid-generator";
 import type { PasswordHasher } from "../domain/services/password-hasher";
+import { NotFound } from "../domain/errors/not-found";
+import { ResourceAlreadyExists } from "../domain/errors/resource-already-exists";
 
 export interface UserRepository {
   create(user: UserAuth): Promise<void>;
@@ -11,27 +13,6 @@ export interface UserRepository {
   findByUsername(username: string): Promise<UserAuth | null>;
   update(user: UserAuth): Promise<void>;
   delete(id: string): Promise<void>;
-}
-
-export class UserAlreadyExistsError extends BaseError {
-  constructor(message: string) {
-    super(message, 400);
-    this.name = "UserAlreadyExistsError";
-  }
-}
-
-export class UserNotFoundError extends BaseError {
-  constructor(message: string) {
-    super(message, 404);
-    this.name = "UserNotFoundError";
-  }
-}
-
-export class UserInvalidPasswordError extends BaseError {
-  constructor(message: string) {
-    super(message, 401);
-    this.name = "UserInvalidPasswordError";
-  }
 }
 
 export class UserService {
@@ -48,7 +29,7 @@ export class UserService {
   async login(username: string, password: string): Promise<TokenResponse> {
     const user = await this.userRepository.findByUsername(username);
     if (!user) {
-      throw new UserNotFoundError(`User with username ${username} not found`);
+      throw new NotFound(`User with username ${username} not found`);
     }
     const isValid = await this.validatePassword(password, user.hashedPassword);
     if (!isValid) {
@@ -63,7 +44,7 @@ export class UserService {
   async register(username: string, password: string) {
     const existingUser = await this.userRepository.findByUsername(username);
     if (existingUser) {
-      throw new UserAlreadyExistsError(
+      throw new ResourceAlreadyExists(
         `User with username ${username} already exists`,
       );
     }
@@ -108,7 +89,7 @@ export class UserService {
   async deleteUser(id: string) {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new UserNotFoundError(`User with id ${id} not found`);
+      throw new NotFound(`User with id ${id} not found`);
     }
     await this.userRepository.delete(id);
   }
@@ -123,7 +104,7 @@ export class UserService {
   ): Promise<void> {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new UserNotFoundError(`User with id ${id} not found`);
+      throw new NotFound(`User with id ${id} not found`);
     }
     if (params.email) {
       user.email = params.email;
@@ -135,5 +116,12 @@ export class UserService {
       user.hashedPassword = await this.passwordHasher.hash(params.password);
     }
     await this.userRepository.update(user);
+  }
+}
+
+export class UserInvalidPasswordError extends BaseError {
+  constructor(message: string) {
+    super(message, 401);
+    this.name = "UserInvalidPasswordError";
   }
 }

@@ -1,14 +1,11 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import {
-  UserService,
-  UserAlreadyExistsError,
-  UserNotFoundError,
-  UserInvalidPasswordError,
-} from "./user.service";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { UserInvalidPasswordError, UserService } from "./user.service";
 import type { UserRepository } from "./user.service";
 import { UserAuth } from "../domain/user";
 import { PasswordHasher } from "../infrastructure/crypto/password-hasher";
 import { UuidGenerator } from "../infrastructure/crypto/uuid";
+import { ResourceAlreadyExists } from "../domain/errors/resource-already-exists";
+import { NotFound } from "../domain/errors/not-found";
 
 // Mock repository for testing
 class MockUserRepository implements UserRepository {
@@ -56,7 +53,7 @@ describe("UserService", () => {
     userService = new UserService(
       mockRepository,
       uuidGenerator,
-      passwordHasher
+      passwordHasher,
     );
   });
 
@@ -75,7 +72,7 @@ describe("UserService", () => {
       // Verify password was hashed
       const isValidPassword = await passwordHasher.verify(
         password,
-        createdUser!.hashedPassword
+        createdUser!.hashedPassword,
       );
       expect(isValidPassword).toBe(true);
     });
@@ -89,10 +86,10 @@ describe("UserService", () => {
 
       // Try to register same username again
       expect(userService.register(username, password)).rejects.toThrow(
-        UserAlreadyExistsError
+        ResourceAlreadyExists,
       );
       expect(userService.register(username, password)).rejects.toThrow(
-        `User with username ${username} already exists`
+        `User with username ${username} already exists`,
       );
     });
 
@@ -128,10 +125,10 @@ describe("UserService", () => {
 
       expect(user1?.id).not.toBe(user2?.id);
       expect(user1?.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
       );
       expect(user2?.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
       );
     });
   });
@@ -152,15 +149,15 @@ describe("UserService", () => {
       expect(token.expiresIn).not.toBeNull();
     });
 
-    it("should throw UserNotFoundError when username does not exist", async () => {
+    it("should throw NotFound when username does not exist", async () => {
       const username = "nonexistentuser";
       const password = "password123";
 
       expect(userService.login(username, password)).rejects.toThrow(
-        UserNotFoundError
+        NotFound,
       );
       expect(userService.login(username, password)).rejects.toThrow(
-        `User with username ${username} not found`
+        `User with username ${username} not found`,
       );
     });
 
@@ -174,10 +171,10 @@ describe("UserService", () => {
 
       // Try to login with wrong password
       expect(userService.login(username, wrongPassword)).rejects.toThrow(
-        UserInvalidPasswordError
+        UserInvalidPasswordError,
       );
       expect(userService.login(username, wrongPassword)).rejects.toThrow(
-        `Invalid password for user ${username}`
+        `Invalid password for user ${username}`,
       );
     });
 
@@ -189,10 +186,10 @@ describe("UserService", () => {
 
       // Should not find user with different case
       expect(userService.login("testuser", password)).rejects.toThrow(
-        UserNotFoundError
+        NotFound,
       );
       expect(userService.login("TESTUSER", password)).rejects.toThrow(
-        UserNotFoundError
+        NotFound,
       );
     });
   });
@@ -212,11 +209,11 @@ describe("UserService", () => {
       const serviceWithFailingRepo = new UserService(
         failingRepository,
         new UuidGenerator(),
-        new PasswordHasher()
+        new PasswordHasher(),
       );
 
       expect(
-        serviceWithFailingRepo.register("testuser", "password")
+        serviceWithFailingRepo.register("testuser", "password"),
       ).rejects.toThrow("Database connection failed");
     });
 
@@ -232,11 +229,11 @@ describe("UserService", () => {
       const serviceWithNullRepo = new UserService(
         nullRepository,
         uuidGenerator,
-        passwordHasher
+        passwordHasher,
       );
 
       expect(serviceWithNullRepo.login("testuser", "password")).rejects.toThrow(
-        UserNotFoundError
+        NotFound,
       );
     });
   });
@@ -254,14 +251,14 @@ describe("UserService", () => {
       // Test correct password
       const isValidCorrect = await passwordHasher.verify(
         password,
-        user!.hashedPassword
+        user!.hashedPassword,
       );
       expect(isValidCorrect).toBe(true);
 
       // Test incorrect password
       const isValidIncorrect = await passwordHasher.verify(
         "wrongpassword",
-        user!.hashedPassword
+        user!.hashedPassword,
       );
       expect(isValidIncorrect).toBe(false);
     });
@@ -276,7 +273,7 @@ describe("UserService", () => {
       expect(user).not.toBeNull();
       const isValid = await passwordHasher.verify(
         password,
-        user!.hashedPassword
+        user!.hashedPassword,
       );
       expect(isValid).toBe(true);
     });
@@ -321,7 +318,7 @@ describe("UserService", () => {
 
       // Verify the error is propagated
       expect(userService.verifyAccessToken(testToken)).rejects.toThrow(
-        "Invalid JWT token"
+        "Invalid JWT token",
       );
       expect(mockVerifyAccessToken).toHaveBeenCalledWith(testToken);
       expect(mockVerifyAccessToken).toHaveBeenCalledTimes(1);
@@ -346,22 +343,22 @@ describe("UserService", () => {
       expect(updatedUser?.username).toBe("newusername");
       expect(updatedUser?.email).toBe(`${username}@example.com`);
       expect(updatedUser?.hashedPassword).not.toBe(
-        await passwordHasher.hash(password)
+        await passwordHasher.hash(password),
       );
       const isValidPassword = await passwordHasher.verify(
         newPassword,
-        updatedUser!.hashedPassword
+        updatedUser!.hashedPassword,
       );
       expect(isValidPassword).toBe(true);
     });
 
-    it("should throw UserNotFoundError when user does not exist", async () => {
+    it("should throw NotFound when user does not exist", async () => {
       expect(
         userService.updateUser("non-existent-id", {
           username: "newusername",
           password: "newpassword123",
-        })
-      ).rejects.toThrow(UserNotFoundError);
+        }),
+      ).rejects.toThrow(NotFound);
     });
   });
 
@@ -379,9 +376,9 @@ describe("UserService", () => {
       expect(deletedUser).toBeNull();
     });
 
-    it("should throw UserNotFoundError when user does not exist", async () => {
+    it("should throw NotFound when user does not exist", async () => {
       expect(userService.deleteUser("non-existent-id")).rejects.toThrow(
-        UserNotFoundError
+        NotFound,
       );
     });
   });

@@ -1,4 +1,5 @@
-import { BaseError } from "../common/error";
+import { BaseError } from "../domain/errors/base-error";
+import { NotFound } from "../domain/errors/not-found";
 import { Permission } from "../domain/permission";
 import type { Service } from "../domain/service";
 import type { UuidGenerator } from "../domain/services/uuid-generator";
@@ -53,7 +54,7 @@ export class PermissionService {
     const permission = await this.permissionRepository.findById(id);
 
     if (!permission) {
-      throw new PermissionNotFound(`cannot update permission with id ${id}`);
+      throw new NotFound(`cannot update permission with id ${id}`);
     }
 
     if (params.name) {
@@ -72,7 +73,7 @@ export class PermissionService {
     const permission = await this.permissionRepository.findById(id);
 
     if (!permission) {
-      throw new PermissionNotFound(`cannot delete permission with id ${id}`);
+      throw new NotFound(`cannot delete permission with id ${id}`);
     }
 
     await this.permissionRepository.delete(id);
@@ -82,7 +83,7 @@ export class PermissionService {
     const permission = await this.permissionRepository.findById(id);
 
     if (!permission) {
-      throw new PermissionNotFound(`Permission with id ${id} not found`);
+      throw new NotFound(`Permission with id ${id} not found`);
     }
 
     return permission;
@@ -106,12 +107,5 @@ export class PermissionService {
       userId,
       serviceName,
     );
-  }
-}
-
-export class PermissionNotFound extends BaseError {
-  constructor(message: string) {
-    super(message, 404);
-    this.name = "PermissionNotFound";
   }
 }

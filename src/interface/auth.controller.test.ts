@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { AuthController } from "./auth.controller";
 import {
-  UserAlreadyExistsError,
   UserInvalidPasswordError,
-  UserNotFoundError,
   UserService,
 } from "../application/user.service";
 import type { TokenResponse } from "../application/jwt.service";
+import { NotFound } from "../domain/errors/not-found";
+import { ResourceAlreadyExists } from "../domain/errors/resource-already-exists";
 
 // Simple mock for testing
 const createMockUserService = () => ({
@@ -23,7 +23,7 @@ describe("UserController", () => {
   beforeEach(() => {
     mockUserService = createMockUserService();
     userController = new AuthController(
-      mockUserService as unknown as UserService
+      mockUserService as unknown as UserService,
     );
   });
 
@@ -49,7 +49,7 @@ describe("UserController", () => {
       expect(body).toEqual(token);
       expect(mockUserService.login).toHaveBeenCalledWith(
         "testuser",
-        "password123"
+        "password123",
       );
     });
 
@@ -88,7 +88,7 @@ describe("UserController", () => {
     });
 
     it("should return 404 for user not found", async () => {
-      const notFoundError = new UserNotFoundError("User not found");
+      const notFoundError = new NotFound("User not found");
       mockUserService.login.mockRejectedValue(notFoundError);
 
       const request = new Request("http://localhost/login", {
@@ -143,7 +143,7 @@ describe("UserController", () => {
       expect(body.message).toBe("User registered");
       expect(mockUserService.register).toHaveBeenCalledWith(
         "newuser",
-        "password123"
+        "password123",
       );
     });
 
@@ -162,7 +162,7 @@ describe("UserController", () => {
     });
 
     it("should return 400 for user already exists", async () => {
-      const existsError = new UserAlreadyExistsError("User already exists");
+      const existsError = new ResourceAlreadyExists("User already exists");
       mockUserService.register.mockRejectedValue(existsError);
 
       const request = new Request("http://localhost/register", {
@@ -177,7 +177,7 @@ describe("UserController", () => {
       const response = await userController.register(request);
       const body = (await response.json()) as { error: string };
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(409);
       expect(body.error).toBe("User already exists");
     });
 
@@ -216,7 +216,7 @@ describe("UserController", () => {
       const response = await userController.login(request);
 
       expect(response.headers.get("content-type")).toContain(
-        "application/json"
+        "application/json",
       );
     });
 

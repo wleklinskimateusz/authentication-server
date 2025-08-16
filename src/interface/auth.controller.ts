@@ -1,6 +1,6 @@
 import z from "zod";
 import { UserService } from "../application/user.service";
-import { BaseError } from "../common/error";
+import { BaseError } from "../domain/errors/base-error";
 import type { Controller } from "../infrastructure/http/server";
 
 export class InvalidRequestBodyError extends BaseError {

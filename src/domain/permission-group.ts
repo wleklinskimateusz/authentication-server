@@ -1,4 +1,4 @@
-import { BaseError } from "../common/error";
+import { BaseError } from "./errors/base-error";
 import { Permission } from "./permission";
 
 export class PermissionGroup {

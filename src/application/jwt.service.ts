@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BaseError } from "../common/error";
+import { BaseError } from "../domain/errors/base-error";
 import type { User } from "../domain/user";
 
 export const TokenPayload = z.object({

@@ -1,4 +1,4 @@
-import { BaseError } from "../../common/error";
+import { BaseError } from "../../domain/errors/base-error";
 import type { PasswordHasher as PasswordHasherInterface } from "../../domain/services/password-hasher";
 
 export class PasswordHashError extends BaseError {

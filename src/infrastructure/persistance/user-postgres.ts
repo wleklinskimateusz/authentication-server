@@ -1,7 +1,7 @@
 import { UserAuth } from "../../domain/user";
 import { sql } from "bun";
 import type { UserRepository } from "../../application/user.service";
-import { ShouldNotHappenError } from "../../common/error";
+import { ShouldNotHappenError } from "../../domain/errors/base-error";
 import z from "zod";
 
 export class UserPostgres implements UserRepository {
@@ -30,7 +30,7 @@ export class UserPostgres implements UserRepository {
 
     if (!parsed.success) {
       throw new ShouldNotHappenError(
-        "Invalid SQL response: " + JSON.stringify(parsed.error)
+        "Invalid SQL response: " + JSON.stringify(parsed.error),
       );
     }
 
@@ -38,8 +38,8 @@ export class UserPostgres implements UserRepository {
       return null;
     }
 
-    const [id, email, username, passwordHash, createdAt, updatedAt] =
-      parsed.data[0]!;
+    const [id, email, username, passwordHash, createdAt, updatedAt] = parsed
+      .data[0]!;
 
     return new UserAuth({
       id,
@@ -53,18 +53,19 @@ export class UserPostgres implements UserRepository {
 
   async findById(id: string) {
     return this.toUser(
-      await sql`SELECT * FROM users WHERE id = ${id}`.values()
+      await sql`SELECT * FROM users WHERE id = ${id}`.values(),
     );
   }
 
   async findByUsername(username: string) {
     return this.toUser(
-      await sql`SELECT * FROM users WHERE username = ${username}`.values()
+      await sql`SELECT * FROM users WHERE username = ${username}`.values(),
     );
   }
 
   async update(user: UserAuth) {
-    await sql`UPDATE users SET hashed_password = ${user.hashedPassword}, updated_at = ${user.updatedAt} WHERE id = ${user.id}`.execute();
+    await sql`UPDATE users SET hashed_password = ${user.hashedPassword}, updated_at = ${user.updatedAt} WHERE id = ${user.id}`
+      .execute();
   }
 
   async delete(id: string) {
