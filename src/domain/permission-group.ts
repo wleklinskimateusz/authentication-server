@@ -1,4 +1,5 @@
-import type { Permission } from "./permission";
+import { BaseError } from "../common/error";
+import { Permission } from "./permission";
 
 export class PermissionGroup {
   readonly id: string;
@@ -41,34 +42,60 @@ export class PermissionGroup {
 
   set name(value: string) {
     this._name = value;
-    this._updatedAt = new Date();
+    this.touch();
   }
 
   get description(): string {
     return this._description;
   }
+
   set description(value: string) {
     this._description = value;
-    this._updatedAt = new Date();
+    this.touch();
   }
 
   addPermission(permission: Permission) {
-    if (!this._permissions.find((p) => p.id === permission.id)) {
-      this._permissions.push(permission);
+    if (this._permissions.find((p) => p.isEqual(permission))) {
+      throw new PermissionAlreadyAssigned();
     }
-    this._updatedAt = new Date();
+    this._permissions.push(permission);
+    this.touch();
   }
 
-  removePermission(permissionId: string) {
-    this._permissions = this._permissions.filter((p) => p.id !== permissionId);
-    this._updatedAt = new Date();
+  removePermission(
+    permission: Parameters<Permission["isEqual"]>[0],
+  ) {
+    const oldLength = this._permissions.length;
+    this._permissions = this._permissions.filter((p) =>
+      !(p.isEqual(permission))
+    );
+    if (oldLength === this._permissions.length) {
+      throw new PermissionNotFound("could not remove not exisitng permission");
+    }
+    this.touch();
   }
 
-  hasPermission(permissionName: string): boolean {
-    return this._permissions.some((p) => p.name === permissionName);
+  hasPermission(permission: Parameters<Permission["isEqual"]>[0]): boolean {
+    return this._permissions.some((p) => p.isEqual(permission));
   }
 
   get permissions(): Permission[] {
     return [...this._permissions];
+  }
+
+  private touch() {
+    this._updatedAt = new Date();
+  }
+}
+
+export class PermissionAlreadyAssigned extends BaseError {
+  constructor(message = "this permission is already in this group") {
+    super(message, 400);
+  }
+}
+
+export class PermissionNotFound extends BaseError {
+  constructor(message: string) {
+    super(message, 404);
   }
 }

@@ -49,4 +49,17 @@ export class Permission {
   get updatedAt(): Date {
     return this._updatedAt;
   }
+
+  isEqual(
+    otherPermission:
+      | { serviceName: string; permissionName: string }
+      | Permission,
+  ) {
+    if (otherPermission instanceof Permission) {
+      return this._name === otherPermission.name &&
+        this.service.name === otherPermission.service.name;
+    }
+    return this._name === otherPermission.permissionName &&
+      this.service.name === otherPermission.serviceName;
+  }
 }
