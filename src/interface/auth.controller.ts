@@ -40,11 +40,13 @@ export class AuthController extends BaseController implements Controller {
       {
         path: "/login",
         method: "POST",
+        public: true,
         handler: this.login.bind(this),
       },
       {
         path: "/register",
         method: "POST",
+        public: true,
         handler: this.register.bind(this),
       },
     ] satisfies ControllerRoute[];

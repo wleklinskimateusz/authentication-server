@@ -1,6 +1,7 @@
 import type z from "zod";
 import type { UserService } from "../application/user.service";
 import { BaseError } from "../domain/errors/base-error";
+import type { JWTService } from "../application/jwt.service";
 
 export class InvalidRequestBodyError extends BaseError {
     constructor(message: string) {

@@ -7,6 +7,8 @@ export interface PermissionRepository {
     userId: string,
     serviceName: string,
   ): Promise<Permission[]>;
+
+  findGroupPermissions(groupId: string): Promise<Permission[]>;
 }
 
 export class PermissionService {

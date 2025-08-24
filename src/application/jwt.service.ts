@@ -3,9 +3,7 @@ import { BaseError } from "../domain/errors/base-error";
 import type { User } from "../domain/user";
 
 export const TokenPayload = z.object({
-  userId: z.string(),
-  username: z.string(),
-  email: z.string(),
+  sub: z.string(),
   iat: z.number(),
   exp: z.number(),
 });
@@ -46,9 +44,7 @@ export class JWTService {
 
   private async createAccessToken(user: User): Promise<string> {
     const payload: TokenPayload = {
-      userId: user.id,
-      username: user.username,
-      email: user.email,
+      sub: user.id,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + this.accessTokenExpiry,
     };

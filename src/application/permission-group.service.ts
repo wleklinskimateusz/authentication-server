@@ -4,13 +4,27 @@ import type { Permission } from "../domain/permission";
 import { PermissionGroup } from "../domain/permission-group";
 import type { UuidGenerator } from "../domain/services/uuid-generator";
 
+type SearchableFields = "name";
+
 export interface PermissionGroupRepository {
-    createGroup(group: PermissionGroup): Promise<void>;
+    createGroup(group: PermissionGroup, userId: string): Promise<void>;
     findGroupById(id: string): Promise<PermissionGroup | null>;
-    findGroupByName(name: string): Promise<PermissionGroup | null>;
+    findGroupsByName(name: string): Promise<PermissionGroup[]>;
     updateGroup(group: PermissionGroup): Promise<void>;
     deleteGroup(id: string): Promise<void>;
     findUserGroups(userId: string): Promise<PermissionGroup[]>;
+    addPermissionsToGroup(
+        groupId: string,
+        permissionIds: string[],
+    ): Promise<void>;
+    removePermissionsFromGroup(
+        groupId: string,
+        permissionIds: string[],
+    ): Promise<void>;
+    searchGroups(
+        filters: Partial<Record<SearchableFields, string>>,
+        userId: string,
+    ): Promise<PermissionGroup[]>;
 }
 
 export class PermissionGroupService {
@@ -25,12 +39,11 @@ export class PermissionGroupService {
         this.uuidGenerator = uuidGenerator;
     }
 
-    async createGroup(name: string, description: string): Promise<void> {
-        if (await this.permissionGroupRepository.findGroupByName(name)) {
-            throw new ResourceAlreadyExists(
-                `Permission group with name ${name} already exists`,
-            );
-        }
+    async createGroup(
+        name: string,
+        description: string,
+        userId: string,
+    ): Promise<void> {
         const group = new PermissionGroup({
             id: this.uuidGenerator.generate(),
             name,
@@ -38,7 +51,7 @@ export class PermissionGroupService {
             permissions: [],
         });
 
-        await this.permissionGroupRepository.createGroup(group);
+        await this.permissionGroupRepository.createGroup(group, userId);
     }
 
     async updateGroup(
@@ -68,6 +81,7 @@ export class PermissionGroupService {
         }
         return group;
     }
+
     async getUserGroups(userId: string): Promise<PermissionGroup[]> {
         const groups = await this.permissionGroupRepository.findUserGroups(
             userId,
@@ -79,9 +93,10 @@ export class PermissionGroupService {
         }
         return groups;
     }
-    async addPermissionToGroup(
-        permission: Permission,
+
+    async addPermissionsToGroup(
         groupId: string,
+        permissions: Permission[],
     ): Promise<void> {
         const group = await this.permissionGroupRepository.findGroupById(
             groupId,
@@ -92,13 +107,15 @@ export class PermissionGroupService {
             );
         }
 
-        group.addPermission(permission);
-        await this.permissionGroupRepository.updateGroup(group);
+        await this.permissionGroupRepository.addPermissionsToGroup(
+            groupId,
+            permissions.map((p) => p.id),
+        );
     }
 
-    async removePermissionFromGroup(
-        permission: Permission,
+    async removePermissionsFromGroup(
         groupId: string,
+        permissions: Permission[],
     ): Promise<void> {
         const group = await this.permissionGroupRepository.findGroupById(
             groupId,
@@ -109,8 +126,10 @@ export class PermissionGroupService {
             );
         }
 
-        group.removePermission(permission);
-        await this.permissionGroupRepository.updateGroup(group);
+        await this.permissionGroupRepository.removePermissionsFromGroup(
+            groupId,
+            permissions.map((p) => p.id),
+        );
     }
 
     async deleteGroup(id: string): Promise<void> {
@@ -124,8 +143,21 @@ export class PermissionGroupService {
         await this.permissionGroupRepository.deleteGroup(id);
     }
 
-    async getGroupByName(name: string): Promise<PermissionGroup> {
-        const group = await this.permissionGroupRepository.findGroupByName(
+    async searchGroups(
+        filters: Partial<Record<SearchableFields, string>>,
+        userId: string,
+    ): Promise<PermissionGroup[]> {
+        const fields = Object.entries(filters).filter(([, v]) =>
+            v !== undefined
+        );
+        if (fields.length === 0) {
+            this.getUserGroups(userId);
+        }
+        return this.permissionGroupRepository.searchGroups(filters, userId);
+    }
+
+    async getGroupsByName(name: string): Promise<PermissionGroup[]> {
+        const group = await this.permissionGroupRepository.findGroupsByName(
             name,
         );
         if (!group) {

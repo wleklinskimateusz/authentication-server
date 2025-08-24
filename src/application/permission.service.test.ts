@@ -33,6 +33,10 @@ class MockPermissionRepository implements PermissionRepository {
             (p) => p.service.id === serviceId,
         );
     }
+
+    async findGroupPermissions(groupId: string): Promise<Permission[]> {
+        return Array.from(this.permissions.values());
+    }
 }
 
 describe("PermissionService", () => {

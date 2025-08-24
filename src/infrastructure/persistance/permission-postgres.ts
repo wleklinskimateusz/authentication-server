@@ -106,4 +106,19 @@ export class PermissionPostgres extends BasePostgres<PermissionRow, Permission>
         }
         return this.parseMultipleResponse(rows);
     }
+
+    async findGroupPermissions(
+        groupId: string,
+    ): Promise<Permission[]> {
+        const query = sql`
+      SELECT p.* FROM permissions p
+      JOIN group_permissions gp ON gp.permission_id = p.id
+      WHERE gp.group_id = ${groupId}
+    `;
+        const rows = await query.values();
+        if (rows.length === 0) {
+            return [];
+        }
+        return this.parseMultipleResponse(rows);
+    }
 }

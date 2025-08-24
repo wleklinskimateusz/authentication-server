@@ -1,11 +1,18 @@
 import { sql } from "bun";
 
-await sql`
-    DROP TABLE IF EXISTS users
-`;
+const tables = [
+    "group_permissions",
+    "user_groups",
+    "permissions",
+    "groups",
+    "services",
+    "users",
+];
 
-await sql`
-    DROP TABLE IF EXISTS permissions
-`;
+for (const table of tables) {
+    await (
+        sql`DROP TABLE IF EXISTS ${sql(table)} CASCADE;`.execute()
+    );
+}
 
 process.exit(0);
