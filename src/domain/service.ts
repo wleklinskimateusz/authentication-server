@@ -36,4 +36,17 @@ export class Service {
     this.icon = icon;
     this.version = version;
   }
+
+  json() {
+    return {
+      id: this.id,
+      name: this.name,
+      description: this.description,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      url: this.url,
+      icon: this.icon,
+      version: this.version,
+    };
+  }
 }

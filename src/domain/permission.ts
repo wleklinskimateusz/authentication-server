@@ -31,6 +31,17 @@ export class Permission {
     this.updatedAt = updatedAt;
   }
 
+  json() {
+    return {
+      id: this.id,
+      name: this.name,
+      service: this.service.json(),
+      description: this.description,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+
   isEqual(
     otherPermission:
       | { serviceName: string; permissionName: string }

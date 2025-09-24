@@ -38,21 +38,15 @@ export class GroupController extends BaseController implements Controller {
 
     async searchUserGroups(req: Request) {
         const params = Object.fromEntries(new URL(req.url).searchParams);
-        if ("name" in params && typeof params.name !== "string") {
-            throw new InvalidRequestBodyError("Invalid name parameter");
-        }
-        if ("name" in params) {
-            const groups = await this.permissionGroupService.searchGroups(
-                { name: params.name },
-                req.auth!.userId,
-            );
-            return Response.json(groups, { status: 200 });
-        }
-        const groups = await this.permissionGroupService.getUserGroups(
+
+        const groups = await this.permissionGroupService.searchGroups(
+            params,
             req.auth!.userId,
         );
-
-        return Response.json(groups, { status: 200 });
+        return Response.json(
+            groups.map((group) => (group.json())),
+            { status: 200 },
+        );
     }
 
     async updateGroup(req: Request) {
@@ -96,12 +90,12 @@ export class GroupController extends BaseController implements Controller {
     }
 
     async findGroupById(req: Request) {
-        const { id } = Object.fromEntries(new URL(req.url).searchParams);
+        const id = req.params?.get("id");
         if (typeof id !== "string") {
             throw new InvalidRequestBodyError("Missing group id");
         }
         const group = await this.permissionGroupService.getGroupById(id);
-        return Response.json(group, { status: 200 });
+        return Response.json(group.json(), { status: 200 });
     }
 
     registerRoutes(): { path: string; routes: ControllerRoute[] } {

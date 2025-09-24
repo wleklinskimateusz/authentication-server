@@ -51,6 +51,16 @@ export class Server {
     return controller;
   }
 
+  removeFirstAndLastSlash(str: string) {
+    if (str.startsWith("/")) {
+      str = str.slice(1);
+    }
+    if (str.endsWith("/")) {
+      str = str.slice(0, -1);
+    }
+    return str;
+  }
+
   findRoute(
     controller: Controller,
     path: string,
@@ -58,10 +68,19 @@ export class Server {
     request: Request,
   ) {
     const { path: controllerPath, routes } = controller.registerRoutes();
+    const trimmedPath = this.removeFirstAndLastSlash(path);
     const potentialRoutes = routes.filter((r) => {
+      let fullPath = this.removeFirstAndLastSlash(controllerPath + r.path);
       if (r.path.includes("[")) {
-        const routeParts = (controllerPath + r.path).split("/");
-        const pathParts = path.split("/");
+        console.log({
+          controllerPath,
+          routePath: r.path,
+          fullPath: controllerPath + r.path,
+          requestPath: path,
+        });
+
+        const routeParts = fullPath.split("/");
+        const pathParts = trimmedPath.split("/");
 
         if (routeParts.length !== pathParts.length) {
           return false;
@@ -76,10 +95,12 @@ export class Server {
           if (
             !(routeParts[i]?.startsWith("[") && routeParts[i]?.endsWith("]"))
           ) {
-            return false;
+            continue;
           }
+          console.log({ routePart: routeParts[i], pathPart });
 
           const paramName = routeParts[i]?.slice(1, -1);
+          console.log({ paramName });
           if (!paramName) {
             return false;
           }
@@ -88,13 +109,16 @@ export class Server {
 
         request.params = params;
       }
-      const fullPath = controllerPath + r.path;
-      // if ends with / and path doesn't, add it
-      if (fullPath.endsWith("/") && !path.endsWith("/")) {
-        path += "/";
+
+      // if request.params is defined, replace params in fullPath with values from request.params
+      if (request.params) {
+        for (const [key, value] of request.params) {
+          fullPath = fullPath.replace(`[${key}]`, value);
+          console.log({ fullPath });
+        }
       }
 
-      return fullPath === path;
+      return fullPath === trimmedPath;
     });
 
     if (!potentialRoutes.length) {
@@ -113,9 +137,10 @@ export class Server {
   }
 
   handleError(error: unknown) {
+    console.error({ error });
     if (error instanceof BaseError) {
       return Response.json(
-        { error: error.message },
+        { error: error.message, cause: error.cause || null },
         { status: error.statusCode },
       );
     }
@@ -154,7 +179,7 @@ export class Server {
           }
 
           console.log(`${method} ${path}`);
-          return route.handler(request);
+          return await route.handler(request);
         } catch (error) {
           return this.handleError(error);
         }

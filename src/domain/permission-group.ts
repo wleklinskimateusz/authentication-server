@@ -39,6 +39,17 @@ export class PermissionGroup {
     this._permissions.push(permission);
   }
 
+  json() {
+    return {
+      id: this.id,
+      name: this.name,
+      description: this.description,
+      permissions: this._permissions.map((p) => p.json()),
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+
   removePermission(
     permission: Parameters<Permission["isEqual"]>[0],
   ) {

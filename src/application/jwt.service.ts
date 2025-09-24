@@ -17,12 +17,14 @@ export interface TokenResponse {
 
 export class JWTService {
   accessTokenSecret: string;
-  accessTokenExpiry: number; // in seconds
+  accessTokenExpiry: number; // in miliseconds
 
   constructor() {
-    this.accessTokenSecret = process.env.JWT_ACCESS_SECRET ||
-      "your-access-secret-key";
-    this.accessTokenExpiry = parseInt(process.env.JWT_ACCESS_EXPIRY || "86400"); // 24 hours
+    this.accessTokenSecret =
+      process.env.JWT_ACCESS_SECRET || "your-access-secret-key";
+    this.accessTokenExpiry = parseInt(
+      process.env.JWT_ACCESS_EXPIRY || (24 * 60 * 60 * 1000).toString()
+    ); // 24 hours default
   }
 
   async generateAccessToken(user: User): Promise<TokenResponse> {
@@ -45,15 +47,15 @@ export class JWTService {
   private async createAccessToken(user: User): Promise<string> {
     const payload: TokenPayload = {
       sub: user.id,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + this.accessTokenExpiry,
+      iat: Date.now(),
+      exp: Date.now() + this.accessTokenExpiry,
     };
 
     const header = this.encodeBase64Url({ alg: "HS256", typ: "JWT" });
     const payloadStr = this.encodeBase64Url(payload);
     const signature = await this.createSignature(
       header + "." + payloadStr,
-      this.accessTokenSecret,
+      this.accessTokenSecret
     );
 
     return `${header}.${payloadStr}.${signature}`;
@@ -65,13 +67,13 @@ export class JWTService {
       new TextEncoder().encode(secret),
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"],
+      ["sign"]
     );
 
     const signatureBuffer = await crypto.subtle.sign(
       "HMAC",
       key,
-      new TextEncoder().encode(data),
+      new TextEncoder().encode(data)
     );
 
     return Buffer.from(signatureBuffer).toString("base64url");
@@ -92,7 +94,7 @@ export class JWTService {
 
       const expectedSignature = await this.createSignature(
         header + "." + payload,
-        this.accessTokenSecret,
+        this.accessTokenSecret
       );
       if (signature !== expectedSignature) {
         throw new JWTInvalidTokenError("Invalid token signature");
@@ -100,7 +102,7 @@ export class JWTService {
 
       const decodedPayload = this.decodeBase64Url(payload, TokenPayload);
 
-      if (decodedPayload.exp && Date.now() >= decodedPayload.exp * 1000) {
+      if (!decodedPayload.exp || Date.now() >= decodedPayload.exp) {
         throw new JWTTokenExpiredError("Access token has expired");
       }
 
